@@ -22,9 +22,10 @@ object Arithmetic extends StandardTokenParsers {
    */
   def Expr: Parser[Term] = (
   //   ... To complete ... 
-      "true" ~> Expr
-      | "false" ~> Expr
-      | "if" ~> Expr ~> "then" ~> Expr ~> "else" ~> Expr
+      "true" ^^^ True
+      | "false" ^^^ False
+      | ("if" ~> Expr) ~ ("then" ~> Expr) ~ ("else" ~> Expr) ^^ {case e1~e2~e3 => If(e1, e2, e3)}
+      | "0" ^^^ Zero
       | "succ" ~> Expr ^^ { case e1 => Succ(e1)}
       | "pred" ~> Expr ^^ { case e1 => Pred(e1)}
       | "iszero" ~> Expr ^^ { case e1 => IsZero(e1) }
