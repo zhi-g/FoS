@@ -3,7 +3,8 @@ package fos
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 import scala.util.parsing.input._
 
-/** This object implements a parser and evaluator for the NB
+/**
+ * This object implements a parser and evaluator for the NB
  *  language of booleans and numbers found in Chapter 3 of
  *  the TAPL book.
  */
@@ -12,25 +13,25 @@ object Arithmetic extends StandardTokenParsers {
 
   import lexical.NumericLit
 
-  /** Expr ::= 'true'
-      | 'false'
-      | 'if' Expr 'then' Expr 'else' Expr
-      | '0'
-      | 'succ' Expr
-      | 'pred' Expr
-      | 'iszero' Expr
+  /**
+   * Expr ::= 'true'
+   * | 'false'
+   * | 'if' Expr 'then' Expr 'else' Expr
+   * | '0'
+   * | 'succ' Expr
+   * | 'pred' Expr
+   * | 'iszero' Expr
    */
   def Expr: Parser[Term] = (
-  //   ... To complete ... 
-      "true" ^^^ True
-      | "false" ^^^ False
-      | ("if" ~> Expr) ~ ("then" ~> Expr) ~ ("else" ~> Expr) ^^ {case e1~e2~e3 => If(e1, e2, e3)}
-      | "0" ^^^ Zero
-      | "succ" ~> Expr ^^ { case e1 => Succ(e1)}
-      | "pred" ~> Expr ^^ { case e1 => Pred(e1)}
-      | "iszero" ~> Expr ^^ { case e1 => IsZero(e1) }
-      | failure("illegal start of expression"))
-
+    //   ... To complete ... 
+    "true" ^^^ True
+    | "false" ^^^ False
+    | ("if" ~> Expr) ~ ("then" ~> Expr) ~ ("else" ~> Expr) ^^ { case e1 ~ e2 ~ e3 => If(e1, e2, e3) }
+    | "0" ^^^ Zero
+    | "succ" ~> Expr ^^ { case e1 => Succ(e1) }
+    | "pred" ~> Expr ^^ { case e1 => Pred(e1) }
+    | "iszero" ~> Expr ^^ { case e1 => IsZero(e1) }
+    | failure("illegal start of expression"))
 
   //   ... To complete ... 
 
@@ -38,7 +39,7 @@ object Arithmetic extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-  //   ... To complete ... 
+      //   ... To complete ... 
       case e =>
         println(e)
     }
