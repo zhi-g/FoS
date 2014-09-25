@@ -32,14 +32,27 @@ object Arithmetic extends StandardTokenParsers {
     | "pred" ~> Expr ^^ { case e1 => Pred(e1) }
     | "iszero" ~> Expr ^^ { case e1 => IsZero(e1) }
     | failure("illegal start of expression"))
-
+  
+    
   //   ... To complete ... 
 
+  def reduce(y: Term) = y match {
+    case True => True
+    case False => False
+    case Zero => Zero
+    case If(True, e1, e2) => e1
+    case If(False, e1, e2) => e2
+    case IsZero(Zero) => True
+    case IsZero(Succ(x)) => False
+    case Pred(Zero) => Zero
+    case Pred(Succ(Zero)) => Zero
+  }
+    
   def main(args: Array[String]): Unit = {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-      //   ... To complete ... 
+      //   ... To complete ...  
       case e =>
         println(e)
     }
