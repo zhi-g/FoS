@@ -54,7 +54,7 @@ object Arithmetic extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-        println(trees)
+        println(trees.eval)
       case e =>
         println(e)
     }
