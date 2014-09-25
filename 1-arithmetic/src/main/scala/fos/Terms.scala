@@ -66,7 +66,11 @@ case class Pred(t: Term) extends Term {
   def eval = (
     t match {
       case Zero => Zero
-      case Succ(term) => term.eval
+      case Succ(term) => term.eval match {
+        case True => StuckTerm(Succ(term))
+        case False => StuckTerm(Succ(term))
+        case x => x
+      }
       case Pred(_) => Pred(t.eval).eval
       case x: If => Pred(x.eval).eval
       case StuckTerm(_) => t
