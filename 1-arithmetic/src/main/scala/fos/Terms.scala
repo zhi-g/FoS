@@ -29,7 +29,7 @@ case object Zero extends Term {
     Zero)
 
   override def toString(): String = {
-    "0"
+    "Zero"
   }
 }
 

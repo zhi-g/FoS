@@ -9,7 +9,7 @@ import scala.util.parsing.input._
  *  the TAPL book.
  */
 object Arithmetic extends StandardTokenParsers {
-  lexical.reserved ++= List("true", "false", "if", "then", "else", "succ", "pred", "iszero")
+  lexical.reserved ++= List("true", "false", "0", "if", "then", "else", "succ", "pred", "iszero")
 
   import lexical.NumericLit
 
@@ -54,7 +54,7 @@ object Arithmetic extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-        println(trees.eval)
+        println(trees)
       case e =>
         println(e)
     }
