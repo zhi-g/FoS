@@ -10,14 +10,27 @@ abstract class Term extends Positional {
 case object True extends Term {
   def eval = (
     True)
+  override def toString(): String = {
+    "true"
+  }
 }
+
 case object False extends Term {
   def eval = (
     False)
+
+  override def toString(): String = {
+    "false"
+  }
 }
+
 case object Zero extends Term {
   def eval = (
     Zero)
+
+  override def toString(): String = {
+    "0"
+  }
 }
 
 case class If(cond: Term, thn: Term, els: Term) extends Term {
@@ -27,6 +40,10 @@ case class If(cond: Term, thn: Term, els: Term) extends Term {
       case False => els.eval
       case _ => StuckTerm(If(cond, thn, els))
     })
+
+  override def toString(): String = {
+    "If " + cond.toString() + " then " + thn.toString() + " else " + els.toString()
+  }
 }
 
 case class Succ(t: Term) extends Term {
@@ -37,6 +54,10 @@ case class Succ(t: Term) extends Term {
       case Zero => Succ(Zero)
       case _ => StuckTerm(Succ(t))
     })
+
+  override def toString(): String = {
+    "Succ(" + t.toString() + ")"
+  }
 }
 
 case class Pred(t: Term) extends Term {
@@ -50,6 +71,10 @@ case class Pred(t: Term) extends Term {
       case StuckTerm(term) => StuckTerm(t)
       case _ => StuckTerm(Pred(t))
     })
+
+  override def toString(): String = {
+    "Pred(" + t.toString() + ")"
+  }
 }
 
 case class IsZero(t: Term) extends Term {
@@ -59,9 +84,17 @@ case class IsZero(t: Term) extends Term {
       case Succ(term) => False
       case _ => StuckTerm(IsZero(t))
     })
+
+  override def toString(): String = {
+    "IsZero(" + t.toString() + ")"
+  }
 }
 
 case class StuckTerm(t: Term) extends Term {
   def eval = (
     StuckTerm(t))
+
+  override def toString(): String = {
+    "Stuck term : " + t.toString()
+  }
 }

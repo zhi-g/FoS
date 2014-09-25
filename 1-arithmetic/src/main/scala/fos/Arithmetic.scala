@@ -52,7 +52,7 @@ object Arithmetic extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-      //   ... To complete ...  
+        
       case e =>
         println(e)
     }
