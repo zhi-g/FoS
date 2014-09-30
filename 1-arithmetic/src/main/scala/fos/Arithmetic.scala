@@ -38,24 +38,31 @@ object Arithmetic extends StandardTokenParsers {
     case _ => Succ(intToTerm(n-1))
   }
 
-  def reduce(y: Term) = y match {
-    case True => True
-    case False => False
-    case Zero => Zero
-    case If(True, e1, e2) => e1
-    case If(False, e1, e2) => e2
-    case IsZero(Zero) => True
-    case IsZero(Succ(x)) => False
-    case Pred(Zero) => Zero
-    case Pred(Succ(Zero)) => Zero
-  }
+//  def reduce(y: Term) = y match {
+//    case True => True
+//    case False => False
+//    case Zero => Zero
+//    case If(True, e1, e2) => e1
+//    case If(False, e1, e2) => e2
+//    case IsZero(Zero) => True
+//    case IsZero(Succ(x)) => False
+//    case Pred(Zero) => Zero
+//    case Pred(Succ(Zero)) => Zero
+//  }
     
   def main(args: Array[String]): Unit = {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Expr)(tokens) match {
       case Success(trees, _) =>
-        
-        println(trees.eval)
+        //small step
+       	var a = (trees, 0)
+        do {
+        	println(a._1)
+        	a = a._1.reduce
+        } while (a._2 == 1)
+        if (a._2 == 2) println("Stuck term:" + a._1)
+        //Big step
+        println("Big step : " + trees.eval)
       case e =>
         println(e)
     }
