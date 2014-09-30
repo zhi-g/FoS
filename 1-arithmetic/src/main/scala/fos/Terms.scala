@@ -64,7 +64,7 @@ case class Succ(t: Term) extends Term {
   def eval = (
     t match {
       case Zero => Succ(Zero)
-      case Succ(_) => Succ(t.eval)
+      case Succ(_) |Pred(_) => Succ(t.eval)
       case x: If => Succ(x.eval)
       case StuckTerm(_) => t
       case _ => StuckTerm(Succ(t))
