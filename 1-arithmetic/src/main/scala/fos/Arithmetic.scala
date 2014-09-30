@@ -60,9 +60,9 @@ object Arithmetic extends StandardTokenParsers {
         	println(a._1)
         	a = a._1.reduce
         } while (a._2 == 1)
-        if (a._2 == 2) println("Stuck term:" + a._1)
+        if (a._2 == 2) println("Stuck term: " + a._1)
         //Big step
-        println("Big step : " + trees.eval)
+        println("Big step  : " + trees.eval)
       case e =>
         println(e)
     }

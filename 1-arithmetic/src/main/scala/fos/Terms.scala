@@ -140,6 +140,6 @@ case class StuckTerm(t: Term) extends Term {
   def reduce = (this, 2)
 
   override def toString(): String = {
-    "Stuck term : " + t.toString()
+    "Stuck term: " + t.toString()
   }
 }
