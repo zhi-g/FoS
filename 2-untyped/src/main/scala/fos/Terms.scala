@@ -6,3 +6,8 @@ import scala.util.parsing.input.Positional
 abstract class Term extends Positional
 
   //   ... To complete ... 
+
+//to review
+case class Variable extends Term {}
+case class Abstraction extends Term {}
+case class Application extends Term {}
