@@ -8,6 +8,7 @@ abstract class Term extends Positional
   //   ... To complete ... 
 
 //to review
-case class Variable extends Term {}
-case class Abstraction extends Term {}
-case class Application extends Term {}
+case class Variable(name: String) extends Term {}
+case class Abstraction(name: String, term: Term) extends Term {}
+case class Application(term1: Term, term2: Term) extends Term {}
+case class Parentesis(term: Term) extends Term

@@ -14,9 +14,12 @@ object Untyped extends StandardTokenParsers {
   /** Term     ::= AbsOrVar { AbsOrVar }
    */
   def Term: Parser[Term] = (
-  //   ... To complete ... 
-    failure("illegal start of term"))
-
+    stringLit ^^ { case x => Variable(x)}
+	| ("\\" ~> stringLit) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
+	| Term ~ Term ^^ { case e1 ~ e2 => Application(e1, e2)}
+	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
+    | failure("illegal start of term"))
+    
   //   ... To complete ... 
 
   /** Term 't' does not match any reduction rule. */
