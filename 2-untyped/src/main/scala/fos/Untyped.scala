@@ -14,13 +14,26 @@ object Untyped extends StandardTokenParsers {
   /** Term     ::= AbsOrVar { AbsOrVar }
    */
   def Term: Parser[Term] = (
-    stringLit ^^ { case x => Variable(x)}
-	| ("\\" ~> stringLit) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
-	| Term ~ Term ^^ { case e1 ~ e2 => Application(e1, e2)}
+	("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
+	| Term2 ~ rep1(Term2) ^^ { case e1 ~ e2 => parseList(e1::e2)}
+	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
+    | ident ^^ { case x => Variable(x)}
+    | failure("illegal start of term"))
+    
+  def Term2: Parser[Term] = (
+    ident ^^ { case x => Variable(x)}
+	| ("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
 	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
     | failure("illegal start of term"))
     
   //   ... To complete ... 
+    
+  def parseList(terms: List[Term]): Term = (
+      terms match {
+        case x::Nil => x
+        case x::xs => Application(x, parseList(xs))
+      }
+  )
 
   /** Term 't' does not match any reduction rule. */
   case class NoRuleApplies(t: Term) extends Exception(t.toString)
@@ -63,12 +76,13 @@ object Untyped extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
-        println("normal order: ")
-        for (t <- path(trees, reduceNormalOrder))
+        println(trees)
+        //println("normal order: ")
+        /*for (t <- path(trees, reduceNormalOrder))
           println(t)
         println("call-by-value: ")
         for (t <- path(trees, reduceCallByValue))
-          println(t)
+          println(t)*/
 
       case e =>
         println(e)
