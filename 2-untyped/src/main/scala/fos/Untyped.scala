@@ -15,7 +15,7 @@ object Untyped extends StandardTokenParsers {
    */
   def Term: Parser[Term] = (
 	("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
-	| Term2 ~ rep1(Term2) ^^ { case e1 ~ e2 => parseList(e1::e2)}
+	| Term2 ~ rep1(Term2) ^^ { case e1 ~ e2 => parseList((e1::e2).reverse)}
 	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
     | ident ^^ { case x => Variable(x)}
     | failure("illegal start of term"))
@@ -31,7 +31,7 @@ object Untyped extends StandardTokenParsers {
   def parseList(terms: List[Term]): Term = (
       terms match {
         case x::Nil => x
-        case x::xs => Application(x, parseList(xs))
+        case x::xs => Application(parseList(xs), x)
       }
   )
 
