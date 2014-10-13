@@ -38,13 +38,53 @@ object Untyped extends StandardTokenParsers {
   /** Term 't' does not match any reduction rule. */
   case class NoRuleApplies(t: Term) extends Exception(t.toString)
 
+  /** Free variables computation */
+  def fv(t: Term): Set[String] = (
+      t match {
+        case Variable(x) => Set(x)
+        case Application(t1, t2) => fv(t1).union(fv(t2))
+        case Abstraction(x, t) => fv(t) - x
+        case Parenthesis(t) => fv(t)
+      }
+  )
+  
+  /** Alpha-conversion */
+  def alpha(t: Term): Term = (
+      t match {
+        case Application(t1, t2) => 
+      }
+      )
+  
+  /** Substitution rule */
+  def subst(t: Term, x: String, s: Term): Term = (
+      t match {
+        case Variable(name) => if(x==name) s else t
+        case Abstraction(name, term) => {
+          if(x==name) {
+            t
+          } else if(!fv(s).contains(name)) {
+            Abstraction(name, subst(term, x, s))
+          } else {
+            t // Alpha-conversion and then substitution again
+          }
+        }
+        case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
+          
+      }
+  )
+    
+  
   /** Normal order (leftmost, outermost redex first).
    *
    *  @param t the initial term
    *  @return  the reduced term
    */
   def reduceNormalOrder(t: Term): Term = t match {
-  //   ... To complete ... 
+    case Variable(name) => t
+    case Abstraction(name, term) => t
+    case Application(t1, t2) => t
+    case Parenthesis(term) => t
+      
     case _ =>
       throw NoRuleApplies(t)
   }
