@@ -16,14 +16,14 @@ object Untyped extends StandardTokenParsers {
   def Term: Parser[Term] = (
 	("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
 	| Term2 ~ rep1(Term2) ^^ { case e1 ~ e2 => parseList((e1::e2).reverse)}
-	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
+	| "(" ~> Term <~ ")" ^^ { case e1 => Parenthesis(e1)}
     | ident ^^ { case x => Variable(x)}
     | failure("illegal start of term"))
     
   def Term2: Parser[Term] = (
     ident ^^ { case x => Variable(x)}
 	| ("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2)}
-	| "(" ~> Term <~ ")" ^^ { case e1 => Parentesis(e1)}
+	| "(" ~> Term <~ ")" ^^ { case e1 => Parenthesis(e1)}
     | failure("illegal start of term"))
     
   //   ... To complete ... 
