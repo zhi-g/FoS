@@ -76,7 +76,7 @@ object Untyped extends StandardTokenParsers {
 
   /** Substitution rule */
   def subst(t: Term, x: String, s: Term): Term = {
-    print("Substituted for ")
+ //   print("Substituted for ")
     t match {
       case Variable(name) => if (x == name) s else t
       case Abstraction(name, term) => {
@@ -84,16 +84,16 @@ object Untyped extends StandardTokenParsers {
           println(t)
           t
         } else if (!fv(s).contains(name)) {
-          println(Abstraction(name, subst(term, x, s)))
+    //      println(Abstraction(name, subst(term, x, s)))
           Abstraction(name, subst(term, x, s))
         } else {
           val name1 = newName(t)
-          println(Abstraction(name1, subst(alpha(term, name1, name),x,s)))
+    //      println(Abstraction(name1, subst(alpha(term, name1, name),x,s)))
           Abstraction(name1, subst(alpha(term, name1, name),x,s))
         }
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
-
+//      case _ => throw NoRuleApplies(t)
     }}
 
   /**
@@ -104,25 +104,26 @@ object Untyped extends StandardTokenParsers {
    */
   def reduceNormalOrder(t: Term): Term = t match {
     case Variable(name) => {
-      println("Variable " + t)
+ //     println("Variable " + t)
       throw NoRuleApplies(t)
     }
-    case Abstraction(name, term) =>{
-      println("Abstracting " + t)
+    case Abstraction(name, term) => {
+  //    println("Abstracting " + t)
       Abstraction(name, reduceNormalOrder(term))
     }
     case Application(t1, t2) => {
-      println(t1 + " applied to " + t2)
+//      println(t1 + t1.isInstanceOf[Abstraction].toString + " applied to " + t2)
       (t1, t2) match {
         case (Abstraction(name, term), _) => subst(term, name, t2)
-        case (Parenthesis(term), _) => Application(reduceNormalOrder(t1), t2)
+        case (Parenthesis(term), _) => Application(term, t2)
+        case (_, Parenthesis(term)) => Application(t1, term)
         case (Variable(_),Variable(_)) =>  throw NoRuleApplies(t)
         case _ => Application(reduceNormalOrder(t1), reduceNormalOrder(t2))
       }
     }
     case Parenthesis(term) => {
-      println("Parenthesis")
-      reduceNormalOrder(term)
+  //    println("Parenthesis")
+      term
     }
     case _ =>
       throw NoRuleApplies(t)
