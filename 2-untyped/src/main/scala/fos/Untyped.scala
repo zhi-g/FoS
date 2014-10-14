@@ -25,7 +25,7 @@ object Untyped extends StandardTokenParsers {
   def Term2: Parser[Term] = (
     ident ^^ { case x => Variable(x) }
     | ("\\" ~> ident) ~ ("." ~> Term) ^^ { case e1 ~ e2 => Abstraction(e1, e2) }
-    | "(" ~> Term <~ ")" ^^ { case e1 => Parenthesis(e1) }
+    | "(" ~> Term <~ ")" ^^ { case e1 => Parenthesis(e1) } //No need of parenthesis => it adds more steps to our reduction
     | failure("illegal start of term"))
 
   //   ... To complete ... 
@@ -93,7 +93,7 @@ object Untyped extends StandardTokenParsers {
         }
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
-//      case _ => throw NoRuleApplies(t)
+     case Parenthesis(t1) => Parenthesis(subst(t1, x,s)) 
     }}
 
   /**
@@ -104,7 +104,6 @@ object Untyped extends StandardTokenParsers {
    */
   def reduceNormalOrder(t: Term): Term = t match {
     case Variable(name) => {
- //     println("Variable " + t)
       throw NoRuleApplies(t)
     }
     case Abstraction(name, term) => {
@@ -115,15 +114,16 @@ object Untyped extends StandardTokenParsers {
 //      println(t1 + t1.isInstanceOf[Abstraction].toString + " applied to " + t2)
       (t1, t2) match {
         case (Abstraction(name, term), _) => subst(term, name, t2)
-        case (Parenthesis(term), _) => Application(term, t2)
-        case (_, Parenthesis(term)) => Application(t1, term)
+        case (Parenthesis(term), _) => reduceNormalOrder(Application(term, t2))
+        case (_, Parenthesis(term)) =>  reduceNormalOrder(Application(t1, term))
         case (Variable(_),Variable(_)) =>  throw NoRuleApplies(t)
-        case _ => Application(reduceNormalOrder(t1), reduceNormalOrder(t2))
+        case (Variable(_), _ ) => Application(t1, reduceNormalOrder(t2))
+        case _ => Application(reduceNormalOrder(t1), t2)
       }
     }
     case Parenthesis(term) => {
   //    println("Parenthesis")
-      term
+      Parenthesis(reduceNormalOrder(term))
     }
     case _ =>
       throw NoRuleApplies(t)
@@ -131,9 +131,10 @@ object Untyped extends StandardTokenParsers {
 
   /** Call by value reducer. */
   def reduceCallByValue(t: Term): Term = t match {
-    //   ... To complete ... 
-    case _ =>
-      throw NoRuleApplies(t)
+	
+  
+  	case _ =>
+  		throw NoRuleApplies(t)
   }
 
   /**
@@ -156,7 +157,7 @@ object Untyped extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
-        println(trees)
+        //println(trees)
       println("normal order: ")
       for (t <- path(trees, reduceNormalOrder))
           println(t)

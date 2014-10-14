@@ -15,7 +15,7 @@ case class Variable(name: String) extends Term {
 }
 case class Abstraction(name: String, term: Term) extends Term {
   override def toString(): String = {
-    "(\\" + name + "." + term + ")"
+    "\\" + name + "." + term + ""
   }
 }
 case class Application(term1: Term, term2: Term) extends Term {
