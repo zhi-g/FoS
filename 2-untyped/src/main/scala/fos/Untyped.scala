@@ -64,36 +64,37 @@ object Untyped extends StandardTokenParsers {
     )
 
   /** Find a name that is not already in the term*/
-  def newName(t: Term): String = (
+  def newName(t: Term): String = {
+    def newNameAcc(name: String, i: Int, t: Term): String = if(fv(t).contains(name + i)) newNameAcc(name, i+1, t) else (name+i)
     t match {
       case Abstraction(name, term) =>
         newNameAcc(name, 1, term)
       case _ =>
         throw NoRuleApplies(t)
-    })
-    
-  def newNameAcc(name: String, i: Int, t: Term): String = {
-    if(fv(t).contains(name + i)) newNameAcc(name, i+1, t)
-    else (name+i)
+    }
   }
 
   /** Substitution rule */
-  def subst(t: Term, x: String, s: Term): Term = (
+  def subst(t: Term, x: String, s: Term): Term = {
+    print("Substituted for ")
     t match {
       case Variable(name) => if (x == name) s else t
       case Abstraction(name, term) => {
         if (x == name) {
+          println(t)
           t
         } else if (!fv(s).contains(name)) {
+          println(Abstraction(name, subst(term, x, s)))
           Abstraction(name, subst(term, x, s))
         } else {
           val name1 = newName(t)
+          println(Abstraction(name1, subst(alpha(term, name1, name),x,s)))
           Abstraction(name1, subst(alpha(term, name1, name),x,s))
         }
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
 
-    })
+    }}
 
   /**
    * Normal order (leftmost, outermost redex first).
@@ -102,10 +103,27 @@ object Untyped extends StandardTokenParsers {
    *  @return  the reduced term
    */
   def reduceNormalOrder(t: Term): Term = t match {
-    case Variable(name) => t
-    case Abstraction(name, term) => t
-    case Application(t1, t2) => t
-    case Parenthesis(term) => t
+    case Variable(name) => {
+      println("Variable " + t)
+      throw NoRuleApplies(t)
+    }
+    case Abstraction(name, term) =>{
+      println("Abstracting " + t)
+      Abstraction(name, reduceNormalOrder(term))
+    }
+    case Application(t1, t2) => {
+      println(t1 + " applied to " + t2)
+      (t1, t2) match {
+        case (Abstraction(name, term), _) => subst(term, name, t2)
+        case (Parenthesis(term), _) => Application(reduceNormalOrder(t1), t2)
+        case (Variable(_),Variable(_)) =>  throw NoRuleApplies(t)
+        case _ => Application(reduceNormalOrder(t1), reduceNormalOrder(t2))
+      }
+    }
+    case Parenthesis(term) => {
+      println("Parenthesis")
+      reduceNormalOrder(term)
+    }
     case _ =>
       throw NoRuleApplies(t)
   }
@@ -138,10 +156,10 @@ object Untyped extends StandardTokenParsers {
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
         println(trees)
-      //println("normal order: ")
-      /*for (t <- path(trees, reduceNormalOrder))
+      println("normal order: ")
+      for (t <- path(trees, reduceNormalOrder))
           println(t)
-        println("call-by-value: ")
+      /*  println("call-by-value: ")
         for (t <- path(trees, reduceCallByValue))
           println(t)*/
 
