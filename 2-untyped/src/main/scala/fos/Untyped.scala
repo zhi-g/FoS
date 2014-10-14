@@ -48,13 +48,18 @@ object Untyped extends StandardTokenParsers {
       case Parenthesis(t) => fv(t)
     })
 
-  /** Alpha-conversion */
-  def alpha(t: Term, x: String): Term = (
+  /** Alpha-conversion: 
+   *  @param x new name 
+   *  @param y old name
+   *   
+    */
+  def alpha(t: Term, x: String, y: String): Term = (
       t match {
-        case Application(t1, t2) => Application(alpha(t1,x), alpha(t2,x))
-        case Parenthesis(t1) => Parenthesis(alpha(t1,x))
-        case Abstraction(name, t1) => if (name == x) t else Abstraction(name, alpha(t1, x))
-        case Variable(name) => new Variable(x)    
+        case Application(t1, t2) => Application(alpha(t1,x,y), alpha(t2,x,y))
+        case Parenthesis(t1) => Parenthesis(alpha(t1,x,y))
+        //?? what happens when we have 2 abstractions of old name? \x. (\x. x) x
+        case Abstraction(name, t1) => if (name == x || name == y) t else Abstraction(name, alpha(t1,x,y)) 
+        case Variable(name) => if (name == y) new Variable(x) else t   
       }
     )
 
@@ -69,7 +74,7 @@ object Untyped extends StandardTokenParsers {
     
   def newNameAcc(name: String, i: Int, t: Term): String = {
     if(fv(t).contains(name + i)) newNameAcc(name, i+1, t)
-    (name+i)
+    else (name+i)
   }
 
   /** Substitution rule */
@@ -83,7 +88,7 @@ object Untyped extends StandardTokenParsers {
           Abstraction(name, subst(term, x, s))
         } else {
           val name1 = newName(t)
-          Abstraction(name1, subst(alpha(term, name1),x,t))
+          Abstraction(name1, subst(alpha(term, name1, name),x,s))
         }
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
@@ -101,7 +106,6 @@ object Untyped extends StandardTokenParsers {
     case Abstraction(name, term) => t
     case Application(t1, t2) => t
     case Parenthesis(term) => t
-
     case _ =>
       throw NoRuleApplies(t)
   }
