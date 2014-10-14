@@ -56,24 +56,21 @@ object Untyped extends StandardTokenParsers {
         case Abstraction(name, t1) => if (name == x) t else Abstraction(name, alpha(t1, x))
         case Variable(name) => new Variable(x)    
       }
-      
     )
 
   /** Find a name that is not already in the term*/
   def newName(t: Term): String = (
     t match {
       case Abstraction(name, term) =>
-        var i = 1
-        var name1 = name + i
-      
-        while(fv(t).contains(name1)) {
-          i = i+1
-          name1 = name + i
-        }    
-        return name1
+        newNameAcc(name, 1, term)
       case _ =>
         throw NoRuleApplies(t)
     })
+    
+  def newNameAcc(name: String, i: Int, t: Term): String = {
+    if(fv(t).contains(name + i)) newNameAcc(name, i+1, t)
+    (name+i)
+  }
 
   /** Substitution rule */
   def subst(t: Term, x: String, s: Term): Term = (
