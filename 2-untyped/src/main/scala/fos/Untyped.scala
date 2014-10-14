@@ -28,8 +28,6 @@ object Untyped extends StandardTokenParsers {
     | "(" ~> Term <~ ")" ^^ { case e1 => Parenthesis(e1) } //No need of parenthesis => it adds more steps to our reduction
     | failure("illegal start of term"))
 
-  //   ... To complete ... 
-
   def parseList(terms: List[Term]): Term = (
     terms match {
       case x :: Nil => x
@@ -48,24 +46,24 @@ object Untyped extends StandardTokenParsers {
       case Parenthesis(t) => fv(t)
     })
 
-  /** Alpha-conversion: 
-   *  @param x new name 
+  /**
+   * Alpha-conversion:
+   *  @param x new name
    *  @param y old name
-   *   
-    */
+   *
+   */
   def alpha(t: Term, x: String, y: String): Term = (
-      t match {
-        case Application(t1, t2) => Application(alpha(t1,x,y), alpha(t2,x,y))
-        case Parenthesis(t1) => Parenthesis(alpha(t1,x,y))
-        //?? what happens when we have 2 abstractions of old name? \x. (\x. x) x
-        case Abstraction(name, t1) => if (name == x || name == y) t else Abstraction(name, alpha(t1,x,y)) 
-        case Variable(name) => if (name == y) new Variable(x) else t   
-      }
-    )
+    t match {
+      case Application(t1, t2) => Application(alpha(t1, x, y), alpha(t2, x, y))
+      case Parenthesis(t1) => Parenthesis(alpha(t1, x, y))
+      //?? what happens when we have 2 abstractions of old name? \x. (\x. x) x
+      case Abstraction(name, t1) => if (name == x || name == y) t else Abstraction(name, alpha(t1, x, y))
+      case Variable(name) => if (name == y) new Variable(x) else t
+    })
 
   /** Find a name that is not already in the term*/
   def newName(t: Term): String = {
-    def newNameAcc(name: String, i: Int, t: Term): String = if(fv(t).contains(name + i)) newNameAcc(name, i+1, t) else (name+i)
+    def newNameAcc(name: String, i: Int, t: Term): String = if (fv(t).contains(name + i)) newNameAcc(name, i + 1, t) else (name + i)
     t match {
       case Abstraction(name, term) =>
         newNameAcc(name, 1, term)
@@ -76,25 +74,22 @@ object Untyped extends StandardTokenParsers {
 
   /** Substitution rule */
   def subst(t: Term, x: String, s: Term): Term = {
- //   print("Substituted for ")
     t match {
       case Variable(name) => if (x == name) s else t
       case Abstraction(name, term) => {
         if (x == name) {
-          println(t)
           t
         } else if (!fv(s).contains(name)) {
-    //      println(Abstraction(name, subst(term, x, s)))
           Abstraction(name, subst(term, x, s))
         } else {
           val name1 = newName(t)
-    //      println(Abstraction(name1, subst(alpha(term, name1, name),x,s)))
-          Abstraction(name1, subst(alpha(term, name1, name),x,s))
+          Abstraction(name1, subst(alpha(term, name1, name), x, s))
         }
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
-     case Parenthesis(t1) => Parenthesis(subst(t1, x,s)) 
-    }}
+      case Parenthesis(t1) => Parenthesis(subst(t1, x, s))
+    }
+  }
 
   /**
    * Normal order (leftmost, outermost redex first).
@@ -107,22 +102,19 @@ object Untyped extends StandardTokenParsers {
       throw NoRuleApplies(t)
     }
     case Abstraction(name, term) => {
-  //    println("Abstracting " + t)
       Abstraction(name, reduceNormalOrder(term))
     }
     case Application(t1, t2) => {
-//      println(t1 + t1.isInstanceOf[Abstraction].toString + " applied to " + t2)
       (t1, t2) match {
         case (Abstraction(name, term), _) => subst(term, name, t2)
         case (Parenthesis(term), _) => reduceNormalOrder(Application(term, t2))
-        case (_, Parenthesis(term)) =>  reduceNormalOrder(Application(t1, term))
-        case (Variable(_),Variable(_)) =>  throw NoRuleApplies(t)
-        case (Variable(_), _ ) => Application(t1, reduceNormalOrder(t2))
+        case (_, Parenthesis(term)) => reduceNormalOrder(Application(t1, term))
+        case (Variable(_), Variable(_)) => throw NoRuleApplies(t)
+        case (Variable(_), _) => Application(t1, reduceNormalOrder(t2))
         case _ => Application(reduceNormalOrder(t1), t2)
       }
     }
     case Parenthesis(term) => {
-  //    println("Parenthesis")
       Parenthesis(reduceNormalOrder(term))
     }
     case _ =>
@@ -131,10 +123,10 @@ object Untyped extends StandardTokenParsers {
 
   /** Call by value reducer. */
   def reduceCallByValue(t: Term): Term = t match {
-	
-  
-  	case _ =>
-  		throw NoRuleApplies(t)
+    case Application(t1, t2) => t
+
+    case _ =>
+      throw NoRuleApplies(t)
   }
 
   /**
@@ -157,9 +149,8 @@ object Untyped extends StandardTokenParsers {
     val tokens = new lexical.Scanner(StreamReader(new java.io.InputStreamReader(System.in)))
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
-        //println(trees)
-      println("normal order: ")
-      for (t <- path(trees, reduceNormalOrder))
+        println("normal order: ")
+        for (t <- path(trees, reduceNormalOrder))
           println(t)
       /*  println("call-by-value: ")
         for (t <- path(trees, reduceCallByValue))
