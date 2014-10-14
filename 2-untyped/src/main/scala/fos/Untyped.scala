@@ -123,10 +123,21 @@ object Untyped extends StandardTokenParsers {
 
   /** Call by value reducer. */
   def reduceCallByValue(t: Term): Term = t match {
-    case Application(t1, t2) => t
-
+    case Application(Parenthesis(t1), t2) => reduceCallByValue(Application(t1, t2))
+    case Application(t1, Parenthesis(t2)) => reduceCallByValue(Application(t1, t2))
+    case Application(Abstraction(name, term), t2) if isValue(t2) => subst(term, name, t2)
+    case Application(t1, t2) if isValue(t1) => Application(t1, reduceCallByValue(t2))
+    case Application(t1, t2) => Application(reduceCallByValue(t1), t2)
+    case Parenthesis(t1) => reduceCallByValue(t1)
     case _ =>
       throw NoRuleApplies(t)
+  }
+
+  def isValue(t: Term): Boolean = t match {
+    case Variable(_) => true
+    case Abstraction(_, _) => true //???
+    case Parenthesis(a) => isValue(a)
+    case _ => false
   }
 
   /**
@@ -152,9 +163,9 @@ object Untyped extends StandardTokenParsers {
         println("normal order: ")
         for (t <- path(trees, reduceNormalOrder))
           println(t)
-      /*  println("call-by-value: ")
+        println("call-by-value: ")
         for (t <- path(trees, reduceCallByValue))
-          println(t)*/
+          println(t)
 
       case e =>
         println(e)
