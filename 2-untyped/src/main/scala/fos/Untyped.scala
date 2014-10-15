@@ -125,9 +125,9 @@ object Untyped extends StandardTokenParsers {
   def reduceCallByValue(t: Term): Term = t match {
     case Application(Parenthesis(t1), t2) => reduceCallByValue(Application(t1, t2))
     case Application(t1, Parenthesis(t2)) => reduceCallByValue(Application(t1, t2))
-    case Application(Abstraction(name, term), t2) if isValue(t2) => subst(term, name, t2)
-    case Application(t1, t2) if isValue(t1) => Application(t1, reduceCallByValue(t2))
-    case Application(t1, t2) => Application(reduceCallByValue(t1), t2)
+    case Application(t1, t2) if !isValue(t2) => Application(t1, reduceCallByValue(t2))
+    case Application(Abstraction(name, term), t2) if isValue(t2) && !isValue(Abstraction(name, term)) => subst(term, name, t2)
+    case Application(t1, t2) if isValue(t2) => Application(reduceCallByValue(t1), t2)
     case Parenthesis(t1) => reduceCallByValue(t1)
     case _ =>
       throw NoRuleApplies(t)
@@ -135,7 +135,10 @@ object Untyped extends StandardTokenParsers {
 
   def isValue(t: Term): Boolean = t match {
     case Variable(_) => true
-    case Abstraction(_, _) => true //???
+    case Abstraction(name, term) => term match {
+      case Variable(_) => true
+      case _ => false
+    }
     case Parenthesis(a) => isValue(a)
     case _ => false
   }

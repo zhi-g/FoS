@@ -25,11 +25,3 @@ case class Parenthesis(term: Term) extends Term {
     "" + term + ""
   }
 }
-case class Value(abstr: Abstraction) {
-  override def toString(): String = {
-    abstr match {
-      case Abstraction(name, term) => "\\" + name + ". " + term
-      case _ => ""
-    }
-  }
-}
