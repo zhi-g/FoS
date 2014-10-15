@@ -126,8 +126,8 @@ object Untyped extends StandardTokenParsers {
     case Application(Parenthesis(t1), t2) => reduceCallByValue(Application(t1, t2))
     case Application(t1, Parenthesis(t2)) => reduceCallByValue(Application(t1, t2))
     case Application(t1, t2) if !isValue(t2) => Application(t1, reduceCallByValue(t2))
-    case Application(Abstraction(name, term), t2) if isValue(t2) && !isValue(Abstraction(name, term)) => subst(term, name, t2)
-    case Application(t1, t2) if isValue(t2) => Application(reduceCallByValue(t1), t2)
+    case Application(Abstraction(name, term), t2) if !term.isInstanceOf[Variable] || !t2.isInstanceOf[Variable] => subst(term, name, t2) // t2 is a value
+    case Application(t1, t2) => Application(reduceCallByValue(t1), t2)
     case Parenthesis(t1) => reduceCallByValue(t1)
     case _ =>
       throw NoRuleApplies(t)
@@ -135,12 +135,13 @@ object Untyped extends StandardTokenParsers {
 
   def isValue(t: Term): Boolean = t match {
     case Variable(_) => true
-    case Abstraction(name, term) => term match {
-      case Variable(_) => true
-      case _ => false
-    }
     case Parenthesis(a) => isValue(a)
-    case _ => false
+    case _ => try {
+      reduceCallByValue(t)
+      false
+    } catch {
+      case NoRuleApplies(_) => true
+    }
   }
 
   /**
