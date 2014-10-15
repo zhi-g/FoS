@@ -121,13 +121,20 @@ object Untyped extends StandardTokenParsers {
       throw NoRuleApplies(t)
   }
 
-  /** Call by value reducer. */
+  /** Call by value reducer. 
+   *  The outer most redex is reduced and its right handside is a value 
+   */
   def reduceCallByValue(t: Term): Term = t match {
-    case Application(Parenthesis(t1), t2) => reduceCallByValue(Application(t1, t2))
+    //Get rid of parenthesis
+    case Application(Parenthesis(t1), t2) => reduceCallByValue(Application(t1, t2)) 
     case Application(t1, Parenthesis(t2)) => reduceCallByValue(Application(t1, t2))
-    case Application(Abstraction(name, term), t2) if isValue(t2) => subst(term, name, t2)
+    //If the right handside is a value, we can substitute in the abstraction
+    case Application(Abstraction(name, term), t2) if isValue(t2) => subst(term, name, t2) //ok
+    // if t1 is a value we reduce the right handside. Basically same as before we just need to reduce the right side
     case Application(t1, t2) if isValue(t1) => Application(t1, reduceCallByValue(t2))
+   // otherwise we need to reduce the left side until it's a value.
     case Application(t1, t2) => Application(reduceCallByValue(t1), t2)
+    //get rid of parenthesis
     case Parenthesis(t1) => reduceCallByValue(t1)
     case _ =>
       throw NoRuleApplies(t)
@@ -135,7 +142,7 @@ object Untyped extends StandardTokenParsers {
 
   def isValue(t: Term): Boolean = t match {
     case Variable(_) => true
-    case Abstraction(_, _) => true //???
+    case Abstraction(_, _) => true 
     case Parenthesis(a) => isValue(a)
     case _ => false
   }
