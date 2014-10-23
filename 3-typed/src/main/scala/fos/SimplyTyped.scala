@@ -36,13 +36,31 @@ object SimplyTyped extends StandardTokenParsers {
   def SimpleTerm: Parser[Term] = positioned(
       "true"          ^^^ True
     | "false"         ^^^ False
-  //   ... To complete ... 
+    | numericLit      ^^ {case n => intToTerm(n.toInt)}
+    | "succ" ~> Term ^^ {case e => Succ(e)}
+    | "pred" ~> Term ^^ {case e => Pred(e)}
+    | "iszero" ~> Term ^^ {case e => IsZero(e)}
+    | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ {case e1 ~ e2 ~ e3 => If(e1,e2,e3)}
+    | ident ^^ {case e => Variable(e)}
+    | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ {case e1 ~ e2 ~ e3 => Abstraction(e1,e2,e3)} 
+    | "(" ~> Term <~ ")" ^^ {case e => Paren(e)}
+    | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case e1 ~ e2 ~ e3 ~ e4 => Let(e1,e2,e3,e4)}
+    | ("{" ~> Term) ~ (Term <~ "}") ^^ {case e1 ~ e2 => Paire(e1,e2)}
+    | "fst" ~> Term ^^ {case e => e._1}
+    | "snd" ~> Term ^^ {case e => e._2}
     | failure("illegal start of simple term"))
 
+    
+  def intToTerm(n: Int): Term = n match {
+    case 0 => Zero
+    case _ => Succ(intToTerm(n-1))
+  }
   /** Type       ::= SimpleType [ "->" Type ]
    */
   def Type: Parser[Type] = positioned(
   //   ... To complete ... 
+      "Bool"    ^^^ TypeBool
+    | "Nat"	    ^^^ TypeNat
     | failure("illegal start of type"))
 
   //   ... To complete ... 

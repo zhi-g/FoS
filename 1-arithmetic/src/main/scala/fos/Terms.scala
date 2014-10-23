@@ -64,7 +64,7 @@ case class Succ(t: Term) extends Term {
   def eval = (
     t match {
       case Zero => Succ(Zero)
-      case Succ(_) |Pred(_) => t.eval match {
+      case _: Succ | _:  Pred => t.eval match {
         case x: StuckTerm => x
         case x => Succ(x)
       }
@@ -94,7 +94,7 @@ case class Pred(t: Term) extends Term {
         case False => StuckTerm(Succ(term))
         case x => x
       }
-      case Pred(_) => Pred(t.eval).eval
+      case _: Pred => Pred(t.eval).eval
       case x: If => Pred(x.eval).eval
       case StuckTerm(_) => t
       case _ =>
@@ -119,7 +119,7 @@ case class IsZero(t: Term) extends Term {
   def eval = (
     t.eval match {
       case Zero => True
-      case Succ(_) => False
+      case _: Succ => False
       case term: StuckTerm => term
       case _ => StuckTerm(IsZero(t))
     })
