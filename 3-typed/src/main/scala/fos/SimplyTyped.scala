@@ -52,7 +52,7 @@ object SimplyTyped extends StandardTokenParsers {
       | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ { case e1 ~ e2 ~ e3 => If(e1, e2, e3) }
       | ident ^^ { case e => Variable(e) }
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
-      | "(" ~> Term <~ ")" ^^ { case e => Paren(e) }
+      | "(" ~> Term <~ ")" ^^ { case e => e }
       | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 => Let(e1, e2, e3, e4) }
       | ("{" ~> Term) ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
       | "fst" ~> Term ^^ { case e => e._1 }

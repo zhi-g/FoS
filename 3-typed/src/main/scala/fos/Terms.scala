@@ -44,10 +44,6 @@ case class Application(e1: Term, e2: Term) extends Term {
   override def toString() = "(" + e1 + " " + e2 + ")"
 }
 
-case class Paren(t: Term) extends Term {
-  override def toString() = "(" + t + ")"
-}
-
 case class Let(name: String, typ: Type, min: Term, max: Term) extends Term {
   override def toString() = "Let " + name + ": " + typ + " in " + min + " to " + max
 }
