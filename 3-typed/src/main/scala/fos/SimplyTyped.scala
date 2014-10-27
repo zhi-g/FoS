@@ -3,28 +3,31 @@ package fos
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 import scala.util.parsing.input._
 
-/** This object implements a parser and evaluator for the
+/**
+ * This object implements a parser and evaluator for the
  *  simply typed lambda calculus found in Chapter 9 of
  *  the TAPL book.
  */
 object SimplyTyped extends StandardTokenParsers {
   lexical.delimiters ++= List("(", ")", "\\", ".", ":", "=", "->", "{", "}", ",", "*")
-  lexical.reserved   ++= List("Bool", "Nat", "true", "false", "if", "then", "else", "succ",
-                              "pred", "iszero", "let", "in", "fst", "snd")
+  lexical.reserved ++= List("Bool", "Nat", "true", "false", "if", "then", "else", "succ",
+    "pred", "iszero", "let", "in", "fst", "snd")
 
-  /** Term     ::= SimpleTerm { SimpleTerm }
+  /**
+   * Term     ::= SimpleTerm { SimpleTerm }
    */
   def Term: Parser[Term] = positioned(
     SimpleTerm ~ rep1(SimpleTerm) ^^ { case e1 ~ e2 => parseList((e1 :: e2).reverse) }
-    | failure("illegal start of term"))
-    
-    def parseList(terms: List[Term]): Term = (
+      | failure("illegal start of term"))
+
+  def parseList(terms: List[Term]): Term = (
     terms match {
       case x :: Nil => x
       case x :: xs => Application(parseList(xs), x)
     })
 
-  /** SimpleTerm ::= "true"
+  /**
+   * SimpleTerm ::= "true"
    *               | "false"
    *               | number
    *               | "succ" Term
@@ -40,39 +43,39 @@ object SimplyTyped extends StandardTokenParsers {
    *               | "snd" Term
    */
   def SimpleTerm: Parser[Term] = positioned(
-      "true"          ^^^ True
-    | "false"         ^^^ False
-    | numericLit      ^^ {case n => intToTerm(n.toInt)}
-    | "succ" ~> Term ^^ {case e => Succ(e)}
-    | "pred" ~> Term ^^ {case e => Pred(e)}
-    | "iszero" ~> Term ^^ {case e => IsZero(e)}
-    | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ {case e1 ~ e2 ~ e3 => If(e1,e2,e3)}
-    | ident ^^ {case e => Variable(e)}
-    | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ {case e1 ~ e2 ~ e3 => Abstraction(e1,e2,e3)} 
-    | "(" ~> Term <~ ")" ^^ {case e => Paren(e)}
-    | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case e1 ~ e2 ~ e3 ~ e4 => Let(e1,e2,e3,e4)}
-    | ("{" ~> Term) ~ (Term <~ "}") ^^ {case e1 ~ e2 => Paire(e1,e2)}
-    | "fst" ~> Term ^^ {case e => e._1}
-    | "snd" ~> Term ^^ {case e => e._2}
-    | failure("illegal start of simple term"))
+    "true" ^^^ True
+      | "false" ^^^ False
+      | numericLit ^^ { case n => intToTerm(n.toInt) }
+      | "succ" ~> Term ^^ { case e => Succ(e) }
+      | "pred" ~> Term ^^ { case e => Pred(e) }
+      | "iszero" ~> Term ^^ { case e => IsZero(e) }
+      | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ { case e1 ~ e2 ~ e3 => If(e1, e2, e3) }
+      | ident ^^ { case e => Variable(e) }
+      | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
+      | "(" ~> Term <~ ")" ^^ { case e => Paren(e) }
+      | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 => Let(e1, e2, e3, e4) }
+      | ("{" ~> Term) ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
+      | "fst" ~> Term ^^ { case e => e._1 }
+      | "snd" ~> Term ^^ { case e => e._2 }
+      | failure("illegal start of simple term"))
 
-    
   def intToTerm(n: Int): Term = n match {
     case 0 => Zero
-    case _ => Succ(intToTerm(n-1))
+    case _ => Succ(intToTerm(n - 1))
   }
-  /** Type       ::= SimpleType [ "->" Type ]
+  /**
+   * Type       ::= SimpleType [ "->" Type ]
    */
   def Type: Parser[Type] = positioned(
-    SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => parseList((e1::e2).reverse)}
-    | failure("illegal start of type"))
+    SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => parseList((e1 :: e2).reverse) }
+      | failure("illegal start of type"))
 
   def SimpleType: Parser[Type] = positioned(
-      "Bool" ^^^ TypeBool
+    "Bool" ^^^ TypeBool
       | "Nat" ^^^ TypeNat
-	| failure("illegal start of type"))
-	
-	def parseList(tpe: List[Type]): Type = (
+      | failure("illegal start of type"))
+
+  def parseList(tpe: List[Type]): Type = (
     tpe match {
       case x :: Nil => x
       case x :: xs => TypeFunc(parseList(xs), x)
@@ -92,24 +95,25 @@ object SimplyTyped extends StandardTokenParsers {
 
   /** Is the given term a numeric value? */
   def isNumericVal(t: Term): Boolean = t match {
-  //   ... To complete ... 
+    //   ... To complete ... 
     case _ => false
   }
 
   /** Is the given term a value? */
   def isValue(t: Term): Boolean = t match {
-  //   ... To complete ... 
+    //   ... To complete ... 
     case _ => false
   }
 
   /** Call by value reducer. */
   def reduce(t: Term): Term = t match {
-  //   ... To complete ... 
+    //   ... To complete ... 
     case _ =>
       throw NoRuleApplies(t)
   }
 
-  /** Returns the type of the given term <code>t</code>.
+  /**
+   * Returns the type of the given term <code>t</code>.
    *
    *  @param ctx the initial context
    *  @param t   the given term
@@ -118,10 +122,11 @@ object SimplyTyped extends StandardTokenParsers {
   def typeof(ctx: Context, t: Term): Type = t match {
     case True | False =>
       TypeBool
-  //   ... To complete ... 
+    //   ... To complete ... 
   }
 
-  /** Returns a stream of terms, each being one step of reduction.
+  /**
+   * Returns a stream of terms, each being one step of reduction.
    *
    *  @param t      the initial term
    *  @param reduce the evaluation strategy used for reduction.

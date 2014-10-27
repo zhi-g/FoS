@@ -30,14 +30,18 @@ case class IsZero(t: Term) extends Term {
 }
 
 case class If(cond: Term, thn: Term, els: Term) extends Term {
-  override def toString() = "if(" + cond + ") then(" + thn + ") else(" + els + ")" 
+  override def toString() = "if(" + cond + ") then(" + thn + ") else(" + els + ")"
 }
 
 case class Variable(name: String) extends Term {
-  override def toString() = name 
+  override def toString() = name
 }
 case class Abstraction(name: String, typ: Term, term: Term) extends Term {
   override def toString() = "(\\" + name + ": " + typ + ". " + term + ")"
+}
+
+case class Application(e1: Term, e2: Term) extends Term {
+  override def toString() = "(" + e1 + " " + e2 + ")"
 }
 
 case class Paren(t: Term) extends Term {
@@ -51,14 +55,14 @@ case class Let(name: String, typ: Type, min: Term, max: Term) extends Term {
 case class Paire(e1: Term, e2: Term) extends Term {
   override def toString() = "{" + e1 + ", " + e2 + "}"
 }
-  //   ... To complete ... 
+//   ... To complete ... 
 /** Abstract Syntax Trees for types. */
 abstract class Type extends Term
 
 case object TypeBool extends Type {
   override def toString() = "Bool"
 }
-  //   ... To complete ... 
+//   ... To complete ... 
 case object TypeNat extends Type {
   override def toString() = "Nat"
 }
