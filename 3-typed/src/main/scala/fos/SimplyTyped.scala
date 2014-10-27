@@ -17,14 +17,8 @@ object SimplyTyped extends StandardTokenParsers {
    * Term     ::= SimpleTerm { SimpleTerm }
    */
   def Term: Parser[Term] = positioned(
-    SimpleTerm ~ rep1(SimpleTerm) ^^ { case e1 ~ e2 => parseList((e1 :: e2).reverse) }
+    SimpleTerm ~ rep1(SimpleTerm) ^^ { case e1 ~ e2 => (e1 :: e2).reduceLeft((t1: Term, t2: Term) => Application(t1, t2)) }
       | failure("illegal start of term"))
-
-  def parseList(terms: List[Term]): Term = (
-    terms match {
-      case x :: Nil => x
-      case x :: xs => Application(parseList(xs), x)
-    })
 
   /**
    * SimpleTerm ::= "true"
@@ -55,8 +49,16 @@ object SimplyTyped extends StandardTokenParsers {
       | "(" ~> Term <~ ")" ^^ { case e => e }
       | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 => Let(e1, e2, e3, e4) }
       | ("{" ~> Term) ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
-      | "fst" ~> Term ^^ { case e => e._1 }
-      | "snd" ~> Term ^^ { case e => e._2 }
+      | "fst" ~> Term ^^ {
+        case e => e match {
+          case Paire(e1, e2) => e1
+        }
+      }
+      | "snd" ~> Term ^^ {
+        case e => e match {
+          case Paire(e1, e2) => e2
+        }
+      }
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
@@ -67,19 +69,13 @@ object SimplyTyped extends StandardTokenParsers {
    * Type       ::= SimpleType [ "->" Type ]
    */
   def Type: Parser[Type] = positioned(
-    SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => parseList((e1 :: e2).reverse) }
+    SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeFunc(tpe1, tpe2)) }
       | failure("illegal start of type"))
 
   def SimpleType: Parser[Type] = positioned(
     "Bool" ^^^ TypeBool
       | "Nat" ^^^ TypeNat
       | failure("illegal start of type"))
-
-  def parseList(tpe: List[Type]): Type = (
-    tpe match {
-      case x :: Nil => x
-      case x :: xs => TypeFunc(parseList(xs), x)
-    })
 
   /** Thrown when no reduction rule applies to the given term. */
   case class NoRuleApplies(t: Term) extends Exception(t.toString)
@@ -146,9 +142,10 @@ object SimplyTyped extends StandardTokenParsers {
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
         try {
-          println("typed: " + typeof(Nil, trees))
-          for (t <- path(trees, reduce))
-            println(t)
+          print(trees)
+          //println("typed: " + typeof(Nil, trees))
+          //for (t <- path(trees, reduce))
+          //  println(t)
         } catch {
           case tperror => println(tperror.toString)
         }
