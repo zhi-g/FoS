@@ -161,7 +161,6 @@ object SimplyTyped extends StandardTokenParsers {
       case Paire(e1, e2) => Paire(subst(e1, x, s), subst(e2, x, s))
       case First(e) => First(subst(e,x,s))
       case Second(e) => Second(subst(e,x,s))
-      
     }
   }
 
