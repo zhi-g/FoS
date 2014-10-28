@@ -92,8 +92,11 @@ object SimplyTyped extends StandardTokenParsers {
 
   /** Is the given term a value? */
   def isValue(t: Term): Boolean = t match {
-    
-    case _ => false
+    case True => true
+    case False => true
+    case _: Abstraction => true
+    case Paire(e1, e2) => isValue(e1) && isValue(e2)
+    case _ => isNumericVal(t)
   }
 
   /** Call by value reducer. */
