@@ -85,13 +85,14 @@ object SimplyTyped extends StandardTokenParsers {
 
   /** Is the given term a numeric value? */
   def isNumericVal(t: Term): Boolean = t match {
-    //   ... To complete ... 
+    case Zero => true
+    case Succ(x) => isNumericVal(x)
     case _ => false
   }
 
   /** Is the given term a value? */
   def isValue(t: Term): Boolean = t match {
-    //   ... To complete ... 
+    
     case _ => false
   }
 

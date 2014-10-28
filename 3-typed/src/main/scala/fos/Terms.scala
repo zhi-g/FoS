@@ -72,5 +72,5 @@ case class TypeFunc(tpe1: Type, tpe2: Type) extends Type {
 }
 
 case class TypePaire(tpe1: Type, tpe2: Type) extends Type {
-  override def toString () = "(" + tpe1 + " * " + tpe2 + ")"
+  override def toString () = "{" + tpe1 + " * " + tpe2 + "}"
 }
