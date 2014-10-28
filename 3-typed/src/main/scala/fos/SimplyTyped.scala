@@ -47,18 +47,10 @@ object SimplyTyped extends StandardTokenParsers {
       | ident ^^ { case e => Variable(e) }
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
       | "(" ~> Term <~ ")" ^^ { case e => e }
-      | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 => Let(e1, e2, e3, e4) }
+      | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t1), t2) }
       | ("{" ~> Term) ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
-      | "fst" ~> Term ^^ {
-        case e => e match {
-          case Paire(e1, e2) => e1
-        }
-      }
-      | "snd" ~> Term ^^ {
-        case e => e match {
-          case Paire(e1, e2) => e2
-        }
-      }
+      | "fst" ~> Term ^^ { case e => First(e) }
+      | "snd" ~> Term ^^ { case e => Second(e) }
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
@@ -70,11 +62,13 @@ object SimplyTyped extends StandardTokenParsers {
    */
   def Type: Parser[Type] = positioned(
     SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeFunc(tpe1, tpe2)) }
+      | SimpleType ~ ("*" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypePaire(tpe1, tpe2)) }
       | failure("illegal start of type"))
 
   def SimpleType: Parser[Type] = positioned(
     "Bool" ^^^ TypeBool
       | "Nat" ^^^ TypeNat
+      | "(" ~> Type <~ ")" ^^ { case tpe => tpe }
       | failure("illegal start of type"))
 
   /** Thrown when no reduction rule applies to the given term. */
@@ -142,10 +136,9 @@ object SimplyTyped extends StandardTokenParsers {
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
         try {
-          print(trees)
-          //println("typed: " + typeof(Nil, trees))
-          //for (t <- path(trees, reduce))
-          //  println(t)
+          println("typed: " + typeof(Nil, trees))
+          for (t <- path(trees, reduce))
+            println(t)
         } catch {
           case tperror => println(tperror.toString)
         }

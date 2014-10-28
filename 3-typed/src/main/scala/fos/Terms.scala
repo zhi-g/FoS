@@ -44,12 +44,16 @@ case class Application(e1: Term, e2: Term) extends Term {
   override def toString() = "(" + e1 + " " + e2 + ")"
 }
 
-case class Let(name: String, typ: Type, min: Term, max: Term) extends Term {
-  override def toString() = "Let " + name + ": " + typ + " in " + min + " to " + max
-}
-
 case class Paire(e1: Term, e2: Term) extends Term {
   override def toString() = "{" + e1 + ", " + e2 + "}"
+}
+
+case class First(term: Term) extends Term {
+  override def toString() = "fst " + term
+}
+
+case class Second(term: Term) extends Term {
+  override def toString() = "snd " + term
 }
 //   ... To complete ... 
 /** Abstract Syntax Trees for types. */
@@ -63,6 +67,10 @@ case object TypeNat extends Type {
   override def toString() = "Nat"
 }
 
-case class TypeFunc(typ1: Type, typ2: Type) extends Type {
-  override def toString() = typ1 + " ->" + typ2
+case class TypeFunc(tpe1: Type, tpe2: Type) extends Type {
+  override def toString() = "(" + tpe1 + " -> " + tpe2 + ")"
+}
+
+case class TypePaire(tpe1: Type, tpe2: Type) extends Type {
+  override def toString () = "(" + tpe1 + " * " + tpe2 + ")"
 }
