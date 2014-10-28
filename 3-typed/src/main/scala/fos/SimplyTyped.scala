@@ -125,11 +125,11 @@ object SimplyTyped extends StandardTokenParsers {
       case Abstraction(name, tpe, t1) => if (name == x || name == y) t else Abstraction(name, tpe, alpha(t1, x, y))
       case Variable(name) => if (name == y) new Variable(x) else t
       case Paire(e1, e2) => Paire(alpha(e1, x, y), alpha(e2, x, y))
-      case First(e) => First(alpha(e,x,y))
-      case Second(e) => Second(alpha(e,x,y))
-      case IsZero(e) => IsZero(alpha(e,x,y))
-      case Pred(e) => Pred(alpha(e,x,y))
-      case Succ(e) => Succ(alpha(e,x,y))
+      case First(e) => First(alpha(e, x, y))
+      case Second(e) => Second(alpha(e, x, y))
+      case IsZero(e) => IsZero(alpha(e, x, y))
+      case Pred(e) => Pred(alpha(e, x, y))
+      case Succ(e) => Succ(alpha(e, x, y))
     })
 
   /** Find a name that is not already in the term*/
@@ -159,20 +159,37 @@ object SimplyTyped extends StandardTokenParsers {
       }
       case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
       case Paire(e1, e2) => Paire(subst(e1, x, s), subst(e2, x, s))
-      case First(e) => First(subst(e,x,s))
-      case Second(e) => Second(subst(e,x,s))
+      case First(e) => First(subst(e, x, s))
+      case Second(e) => Second(subst(e, x, s))
     }
   }
 
   /** Call by value reducer. */
   def reduce(t: Term): Term = t match {
+    //Computation rules: 
+    case Application(Abstraction(name, tpe, term), t2) if isValue(t2) => subst(term, name, t2)
+    case Pred(Succ(x)) if isNumericVal(x) => x
+    case Pred(Zero) => Zero
+    case If(True, thn, _) => thn
+    case If(False, _, els) => els
+    case IsZero(Zero) => True
+    case IsZero(Succ(x)) if isNumericVal(x) => False
 
-    //If the right handside is a value, we can substitute in the abstraction
-    case Application(Abstraction(name, tpe, term), t2) if isValue(t2) => subst(term, name, t2) //ok
-    // if t1 is a value we reduce the right handside. Basically same as before we just need to reduce the right side
+    //Congruence rules:
     case Application(t1, t2) if isValue(t1) => Application(t1, reduce(t2))
-    // otherwise we need to reduce the left side until it's a value.
     case Application(t1, t2) => Application(reduce(t1), t2)
+    case If(cond, thn, els) => If(reduce(cond), thn, els)
+    case IsZero(e) => IsZero(reduce(e))
+    case Pred(e) => Pred(reduce(e))
+    case Succ(e) => Succ(reduce(e))
+    
+    //Reduction rules for pairs: 
+    case First(Paire(e1,e2)) if isValue(e1) && isValue(e2) => e1
+    case Second(Paire(e1,e2)) if isValue(e1) && isValue(e2) => e2
+    case First(e) => First(reduce(e))
+    case Second(e)=> Second(reduce(e))
+    case Paire(e1,e2) if !isValue(e1) => Paire(reduce(e1), e2)
+    case Paire(e1,e2) => Paire(e1,reduce(e2))
 
     case _ =>
       throw NoRuleApplies(t)
@@ -188,6 +205,7 @@ object SimplyTyped extends StandardTokenParsers {
   def typeof(ctx: Context, t: Term): Type = t match {
     case True | False =>
       TypeBool
+    
     //   ... To complete ... 
   }
 
