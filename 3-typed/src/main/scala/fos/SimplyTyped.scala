@@ -182,14 +182,14 @@ object SimplyTyped extends StandardTokenParsers {
     case IsZero(e) => IsZero(reduce(e))
     case Pred(e) => Pred(reduce(e))
     case Succ(e) => Succ(reduce(e))
-    
+
     //Reduction rules for pairs: 
-    case First(Paire(e1,e2)) if isValue(e1) && isValue(e2) => e1
-    case Second(Paire(e1,e2)) if isValue(e1) && isValue(e2) => e2
+    case First(Paire(e1, e2)) if isValue(e1) && isValue(e2) => e1
+    case Second(Paire(e1, e2)) if isValue(e1) && isValue(e2) => e2
     case First(e) => First(reduce(e))
-    case Second(e)=> Second(reduce(e))
-    case Paire(e1,e2) if !isValue(e1) => Paire(reduce(e1), e2)
-    case Paire(e1,e2) => Paire(e1,reduce(e2))
+    case Second(e) => Second(reduce(e))
+    case Paire(e1, e2) if !isValue(e1) => Paire(reduce(e1), e2)
+    case Paire(e1, e2) => Paire(e1, reduce(e2))
 
     case _ =>
       throw NoRuleApplies(t)
@@ -203,10 +203,31 @@ object SimplyTyped extends StandardTokenParsers {
    *  @return    the computed type
    */
   def typeof(ctx: Context, t: Term): Type = t match {
-    case True | False =>
-      TypeBool
-    
-    //   ... To complete ... 
+    case True | False => TypeBool
+    case Zero => TypeNat
+    case Pred(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type missmatched, expected " + TypeNat + " found " + TypeBool)
+    case Succ(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type missmatched, expected " + TypeNat + " found " + TypeBool)
+    case IsZero(e) => if (typeof(ctx, e) == TypeNat) TypeBool else throw TypeError(t.pos, "Parameter type missmatched, expected " + TypeNat + " found " + TypeBool)
+    case If(cond, thn, els) =>
+      if (typeof(ctx, cond) != TypeBool) throw TypeError(t.pos, "Parameter type missmatched, expected " + TypeBool + " found " + TypeNat)
+      else {
+        val thnTpe = typeof(ctx, thn)
+        val elsTpe = typeof(ctx, els)
+        if (thnTpe == elsTpe) thnTpe
+        else throw TypeError(t.pos, "Parameter type missmatched, expected same return type, found " + thnTpe + " and " + elsTpe)
+      }
+    case Variable(name) => ctx.find(x => x._1 == name) match {
+      case Some(t) => t._2
+      case _ => throw TypeError(t.pos, "Type of variable " + name + " not found")
+    }
+    case Abstraction(name, tpe, term) =>
+      ctx.find(x => x._1 == name) match {
+        case Some(x) =>
+          val neName = newName(t)
+          TypeFunc(tpe, typeof((neName, tpe) :: ctx, alpha(term, neName, name)))
+        case None => TypeFunc(tpe, typeof((name, tpe) :: ctx, term))
+      }
+    case Application(e1, e2) => null
   }
 
   /**

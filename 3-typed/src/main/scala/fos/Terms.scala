@@ -36,7 +36,7 @@ case class If(cond: Term, thn: Term, els: Term) extends Term {
 case class Variable(name: String) extends Term {
   override def toString() = name
 }
-case class Abstraction(name: String, typ: Term, term: Term) extends Term {
+case class Abstraction(name: String, typ: Type, term: Term) extends Term {
   override def toString() = "(\\" + name + ": " + typ + ". " + term + ")"
 }
 
