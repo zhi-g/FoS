@@ -99,9 +99,80 @@ object SimplyTyped extends StandardTokenParsers {
     case _ => isNumericVal(t)
   }
 
+  /** Free variables computation */
+  def fv(t: Term): Set[String] = (
+    t match {
+      case Variable(x) => Set(x)
+      case Application(t1, t2) => fv(t1).union(fv(t2))
+      case Abstraction(x, tpe, t) => fv(t) - x
+      case Paire(e1, e2) => fv(e1).union(fv(e2))
+      case First(e) => fv(e)
+      case Second(e) => fv(e)
+      case IsZero(e) => fv(e)
+      case Pred(e) => fv(e)
+      case Succ(e) => fv(e)
+    })
+
+  /**
+   * Alpha-conversion:
+   *  @param x new name
+   *  @param y old name
+   *
+   */
+  def alpha(t: Term, x: String, y: String): Term = (
+    t match {
+      case Application(t1, t2) => Application(alpha(t1, x, y), alpha(t2, x, y))
+      case Abstraction(name, tpe, t1) => if (name == x || name == y) t else Abstraction(name, tpe, alpha(t1, x, y))
+      case Variable(name) => if (name == y) new Variable(x) else t
+      case Paire(e1, e2) => Paire(alpha(e1, x, y), alpha(e2, x, y))
+      case First(e) => First(alpha(e,x,y))
+      case Second(e) => Second(alpha(e,x,y))
+      case IsZero(e) => IsZero(alpha(e,x,y))
+      case Pred(e) => Pred(alpha(e,x,y))
+      case Succ(e) => Succ(alpha(e,x,y))
+    })
+
+  /** Find a name that is not already in the term*/
+  def newName(t: Term): String = {
+    def newNameAcc(name: String, i: Int, t: Term): String = if (fv(t).contains(name + i)) newNameAcc(name, i + 1, t) else (name + i)
+    t match {
+      case Abstraction(name, tpe, term) =>
+        newNameAcc(name, 1, term)
+      case _ =>
+        throw NoRuleApplies(t)
+    }
+  }
+
+  /** Substitution rule */
+  def subst(t: Term, x: String, s: Term): Term = {
+    t match {
+      case Variable(name) => if (x == name) s else t
+      case Abstraction(name, tpe, term) => {
+        if (x == name) {
+          t
+        } else if (!fv(s).contains(name)) {
+          Abstraction(name, tpe, subst(term, x, s))
+        } else {
+          val name1 = newName(t)
+          Abstraction(name1, tpe, subst(alpha(term, name1, name), x, s))
+        }
+      }
+      case Application(t1, t2) => Application(subst(t1, x, s), subst(t2, x, s))
+      case Paire(e1, e2) => Paire(subst(e1, x, s), subst(e2, x, s))
+      case First(t) => First
+    }
+  }
+
   /** Call by value reducer. */
   def reduce(t: Term): Term = t match {
-    //   ... To complete ... 
+
+    //If the right handside is a value, we can substitute in the abstraction
+    case Application(Abstraction(name, tpe, term), t2) if isValue(t2) => subst(term, name, t2) //ok
+    // if t1 is a value we reduce the right handside. Basically same as before we just need to reduce the right side
+    case Application(t1, t2) if isValue(t1) => Application(t1, reduce(t2))
+    // otherwise we need to reduce the left side until it's a value.
+    case Application(t1, t2) => Application(reduce(t1), t2)
+
     case _ =>
       throw NoRuleApplies(t)
   }
