@@ -227,7 +227,13 @@ object SimplyTyped extends StandardTokenParsers {
           TypeFunc(tpe, typeof((neName, tpe) :: ctx, alpha(term, neName, name)))
         case None => TypeFunc(tpe, typeof((name, tpe) :: ctx, term))
       }
-    case Application(e1, e2) => null
+    case Application(e1, e2) => typeof(ctx, e1) match {
+      case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type missmatched: type of " + e2 + " expected to be " + t1 + ", found : " + typeof(ctx, e2))
+      case _ => throw TypeError(t.pos, "Type missmatched: type of " + e1 + " expected to be function, found: " + typeof(ctx, e1))
+    }
+    
+    case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong")
+
   }
 
   /**
