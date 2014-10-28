@@ -55,14 +55,14 @@ case class First(term: Term) extends Term {
 case class Second(term: Term) extends Term {
   override def toString() = "snd " + term
 }
-//   ... To complete ... 
+
 /** Abstract Syntax Trees for types. */
 abstract class Type extends Term
 
 case object TypeBool extends Type {
   override def toString() = "Bool"
 }
-//   ... To complete ... 
+
 case object TypeNat extends Type {
   override def toString() = "Nat"
 }
