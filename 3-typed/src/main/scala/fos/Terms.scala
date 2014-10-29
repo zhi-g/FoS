@@ -5,15 +5,15 @@ import scala.util.parsing.input.Positional
 /** Abstract Syntax Trees for terms. */
 abstract class Term extends Positional
 
-case class True extends Term {
+case class True() extends Term {
   override def toString() = "true"
 }
 
-case class False extends Term {
+case class False() extends Term {
   override def toString() = "false"
 }
 
-case class Zero extends Term {
+case class Zero() extends Term {
   override def toString() = "0"
 }
 
