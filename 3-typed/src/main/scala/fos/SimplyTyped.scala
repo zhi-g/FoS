@@ -74,7 +74,7 @@ object SimplyTyped extends StandardTokenParsers {
   /** Thrown when no reduction rule applies to the given term. */
   case class NoRuleApplies(t: Term) extends Exception(t.toString)
 
-  /** Print an error message, together with the position where it occured. */
+  /** Print an error message, together with the position where it occurred. */
   case class TypeError(pos: Position, msg: String) extends Exception(msg) {
     override def toString =
       msg + "\n" + pos.longString
@@ -213,16 +213,16 @@ object SimplyTyped extends StandardTokenParsers {
   def typeof(ctx: Context, t: Term): Type = t match {
     case True | False => TypeBool
     case Zero => TypeNat
-    case Pred(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type missmatched: expected " + TypeNat + " found " + TypeBool)
-    case Succ(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type missmatched: expected " + TypeNat + " found " + TypeBool)
-    case IsZero(e) => if (typeof(ctx, e) == TypeNat) TypeBool else throw TypeError(t.pos, "Parameter type missmatched: expected " + TypeNat + " found " + TypeBool)
+    case Pred(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
+    case Succ(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
+    case IsZero(e) => if (typeof(ctx, e) == TypeNat) TypeBool else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
     case If(cond, thn, els) =>
-      if (typeof(ctx, cond) != TypeBool) throw TypeError(t.pos, "Parameter type missmatched: expected " + TypeBool + " found " + TypeNat)
+      if (typeof(ctx, cond) != TypeBool) throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeBool + " found " + TypeNat)
       else {
         val thnTpe = typeof(ctx, thn)
         val elsTpe = typeof(ctx, els)
         if (thnTpe == elsTpe) thnTpe
-        else throw TypeError(t.pos, "Parameter type missmatched: expected same return type, found " + thnTpe + " and " + elsTpe)
+        else throw TypeError(t.pos, "Parameter type mismatched: expected same return type, found " + thnTpe + " and " + elsTpe)
       }
     case Variable(name) => ctx.find(x => x._1 == name) match {
       case Some(t) => t._2
@@ -236,23 +236,23 @@ object SimplyTyped extends StandardTokenParsers {
         case None => TypeFunc(tpe, typeof((name, tpe) :: ctx, term))
       }
     case Application(e1, e2) => typeof(ctx, e1) match {
-      case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type missmatched: type of " + e2 + " expected to be " + t1 + ", found " + typeof(ctx, e2))
-      case _ => throw TypeError(t.pos, "Type missmatched: type of " + e1 + " expected to be function, found " + typeof(ctx, e1))
+      case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type mismatched: type of " + e2 + " expected to be " + t1 + ", found " + typeof(ctx, e2))
+      case _ => throw TypeError(t.pos, "Type mismatched: type of " + e1 + " expected to be function, found " + typeof(ctx, e1))
     }
     case First(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
         case TypePaire(t1, t2) => typeof(ctx, t1)
-        case _ => throw TypeError(e.pos, "Type missmatched: expected pair type, found " + tpe)
+        case _ => throw TypeError(e.pos, "Type mismatched: expected pair type, found " + tpe)
       }
     case Second(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
         case TypePaire(t1, t2) => typeof(ctx, t2)
-        case _ => throw TypeError(e.pos, "Type missmatched: expected pair type, found " + tpe)
+        case _ => throw TypeError(e.pos, "Type mismatched: expected pair type, found " + tpe)
       }
     case Paire(e1, e2) => TypePaire(typeof(ctx, e1), typeof(ctx, e2))
-    case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") //this will not be normal behavior, for debug purposes only.
+    case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") // Should never occur
 
   }
 
