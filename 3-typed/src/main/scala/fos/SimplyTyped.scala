@@ -17,7 +17,7 @@ object SimplyTyped extends StandardTokenParsers {
    * Term     ::= SimpleTerm { SimpleTerm }
    */
   def Term: Parser[Term] = positioned(
-    SimpleTerm ~ rep1(SimpleTerm) ^^ { case e1 ~ e2 => (e1 :: e2).reduceLeft((t1: Term, t2: Term) => Application(t1, t2)) }
+    SimpleTerm ~ rep(SimpleTerm) ^^ { case e1 ~ e2 => (e1 :: e2).reduceLeft((t1: Term, t2: Term) => Application(t1, t2)) }
       | failure("illegal start of term"))
 
   /**
@@ -92,8 +92,7 @@ object SimplyTyped extends StandardTokenParsers {
 
   /** Is the given term a value? */
   def isValue(t: Term): Boolean = t match {
-    case True => true
-    case False => true
+    case True | False => true
     case _: Abstraction => true
     case Paire(e1, e2) => isValue(e1) && isValue(e2)
     case _ => isNumericVal(t)
@@ -102,15 +101,17 @@ object SimplyTyped extends StandardTokenParsers {
   /** Free variables computation */
   def fv(t: Term): Set[String] = (
     t match {
+      case True | False | Zero => Set()
+      case IsZero(e) => fv(e)
+      case Pred(e) => fv(e)
+      case Succ(e) => fv(e)
+      case If(cond, thn, els) => fv(cond).union(fv(thn)).union(fv(els))
       case Variable(x) => Set(x)
       case Application(t1, t2) => fv(t1).union(fv(t2))
       case Abstraction(x, tpe, t) => fv(t) - x
       case Paire(e1, e2) => fv(e1).union(fv(e2))
       case First(e) => fv(e)
       case Second(e) => fv(e)
-      case IsZero(e) => fv(e)
-      case Pred(e) => fv(e)
-      case Succ(e) => fv(e)
     })
 
   /**
@@ -121,15 +122,17 @@ object SimplyTyped extends StandardTokenParsers {
    */
   def alpha(t: Term, x: String, y: String): Term = (
     t match {
+      case True | False | Zero => t
+      case Succ(e) => Succ(alpha(e, x, y))
+      case Pred(e) => Pred(alpha(e, x, y))
+      case IsZero(e) => IsZero(alpha(e, x, y))
+      case If(cond, thn, els) => If(alpha(cond, x, y), alpha(thn, x, y), alpha(els, x, y))
+      case Variable(name) => if (name == y) new Variable(x) else t
       case Application(t1, t2) => Application(alpha(t1, x, y), alpha(t2, x, y))
       case Abstraction(name, tpe, t1) => if (name == x || name == y) t else Abstraction(name, tpe, alpha(t1, x, y))
-      case Variable(name) => if (name == y) new Variable(x) else t
       case Paire(e1, e2) => Paire(alpha(e1, x, y), alpha(e2, x, y))
       case First(e) => First(alpha(e, x, y))
       case Second(e) => Second(alpha(e, x, y))
-      case IsZero(e) => IsZero(alpha(e, x, y))
-      case Pred(e) => Pred(alpha(e, x, y))
-      case Succ(e) => Succ(alpha(e, x, y))
     })
 
   /** Find a name that is not already in the term*/
@@ -146,7 +149,12 @@ object SimplyTyped extends StandardTokenParsers {
   /** Substitution rule */
   def subst(t: Term, x: String, s: Term): Term = {
     t match {
+      case True | False | Zero => t
       case Variable(name) => if (x == name) s else t
+      case Succ(e) => Succ(subst(e, x, s))
+      case Pred(e) => Pred(subst(e, x, s))
+      case IsZero(e) => IsZero(subst(e, x, s))
+      case If(cond, thn, els) => If(subst(cond, x, s), subst(thn, x, s), subst(els, x, s))
       case Abstraction(name, tpe, term) => {
         if (x == name) {
           t
@@ -231,14 +239,12 @@ object SimplyTyped extends StandardTokenParsers {
       case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type missmatched: type of " + e2 + " expected to be " + t1 + ", found : " + typeof(ctx, e2))
       case _ => throw TypeError(t.pos, "Type missmatched: type of " + e1 + " expected to be function, found: " + typeof(ctx, e1))
     }
-
     case First(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
         case TypePaire(t1, t2) => typeof(ctx, t1)
         case _ => throw TypeError(e.pos, "Type missmatched, expected type of pair, found : " + tpe)
       }
-
     case Second(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
@@ -275,7 +281,7 @@ object SimplyTyped extends StandardTokenParsers {
           for (t <- path(trees, reduce))
             println(t)
         } catch {
-          case tperror : Throwable => println(tperror.toString)
+          case tperror: Throwable => println(tperror.toString)
         }
       case e =>
         println(e)
