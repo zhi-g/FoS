@@ -48,7 +48,7 @@ object SimplyTyped extends StandardTokenParsers {
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
       | "(" ~> Term <~ ")" ^^ { case e => e }
       | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t1), t2) }
-      | ("{" ~> Term) ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
+      | (("{" ~> Term) <~ ",") ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
       | "fst" ~> Term ^^ { case e => First(e) }
       | "snd" ~> Term ^^ { case e => Second(e) }
       | failure("illegal start of simple term"))
