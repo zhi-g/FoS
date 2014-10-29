@@ -231,8 +231,22 @@ object SimplyTyped extends StandardTokenParsers {
       case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type missmatched: type of " + e2 + " expected to be " + t1 + ", found : " + typeof(ctx, e2))
       case _ => throw TypeError(t.pos, "Type missmatched: type of " + e1 + " expected to be function, found: " + typeof(ctx, e1))
     }
-    
-    case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong")
+
+    case First(e) =>
+      val tpe = typeof(ctx, e)
+      tpe match {
+        case TypePaire(t1, t2) => typeof(ctx, t1)
+        case _ => throw TypeError(e.pos, "Type missmatched, expected type of pair, found : " + tpe)
+      }
+
+    case Second(e) =>
+      val tpe = typeof(ctx, e)
+      tpe match {
+        case TypePaire(t1, t2) => typeof(ctx, t2)
+        case _ => throw TypeError(e.pos, "Type missmatched, expected type of pair, found : " + tpe)
+      }
+    case Paire(e1, e2) => TypePaire(typeof(ctx, e1), typeof(ctx, e2))
+    case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") //this will not be normal behavior, for debug only.
 
   }
 
@@ -261,7 +275,7 @@ object SimplyTyped extends StandardTokenParsers {
           for (t <- path(trees, reduce))
             println(t)
         } catch {
-          case tperror => println(tperror.toString)
+          case tperror : Throwable => println(tperror.toString)
         }
       case e =>
         println(e)
