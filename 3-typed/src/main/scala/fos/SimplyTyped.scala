@@ -192,7 +192,7 @@ object SimplyTyped extends StandardTokenParsers {
     case Succ(e) => Succ(reduce(e))
 
     //Reduction rules for pairs: 
-    case First(Paire(e1, e2)) if isValue(e1) && isValue(e2) => e1
+    case First(Paire(e1, e2)) if (isValue(e1) && isValue(e2)) => e1
     case Second(Paire(e1, e2)) if isValue(e1) && isValue(e2) => e2
     case First(e) => First(reduce(e))
     case Second(e) => Second(reduce(e))
@@ -242,13 +242,13 @@ object SimplyTyped extends StandardTokenParsers {
     case First(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
-        case TypePaire(t1, t2) => typeof(ctx, t1)
+        case TypePaire(t1, t2) => t1
         case _ => throw TypeError(e.pos, "Type mismatched: expected pair type, found " + tpe)
       }
     case Second(e) =>
       val tpe = typeof(ctx, e)
       tpe match {
-        case TypePaire(t1, t2) => typeof(ctx, t2)
+        case TypePaire(t1, t2) => t2
         case _ => throw TypeError(e.pos, "Type mismatched: expected pair type, found " + tpe)
       }
     case Paire(e1, e2) => TypePaire(typeof(ctx, e1), typeof(ctx, e2))
