@@ -236,8 +236,8 @@ object SimplyTyped extends StandardTokenParsers {
         case None => TypeFunc(tpe, typeof((name, tpe) :: ctx, term))
       }
     case Application(e1, e2) => typeof(ctx, e1) match {
-      case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(t.pos, "Type mismatched: type of " + e2 + " expected to be " + t1 + ", found " + typeof(ctx, e2))
-      case _ => throw TypeError(t.pos, "Type mismatched: type of " + e1 + " expected to be function, found " + typeof(ctx, e1))
+      case TypeFunc(t1, t2) => if (t1 == typeof(ctx, e2)) t2 else throw TypeError(e2.pos, "Type mismatched: type of " + e2 + " expected to be " + t1 + ", found " + typeof(ctx, e2))
+      case _ => throw TypeError(e1.pos, "Type mismatched: type of " + e1 + " expected to be function, found " + typeof(ctx, e1))
     }
     case First(e) =>
       val tpe = typeof(ctx, e)
