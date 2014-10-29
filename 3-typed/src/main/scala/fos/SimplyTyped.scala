@@ -37,8 +37,8 @@ object SimplyTyped extends StandardTokenParsers {
    *               | "snd" Term
    */
   def SimpleTerm: Parser[Term] = positioned(
-    "true" ^^^ True
-      | "false" ^^^ False
+    "true" ^^^ True()
+      | "false" ^^^ False()
       | numericLit ^^ { case n => intToTerm(n.toInt) }
       | "succ" ~> Term ^^ { case e => Succ(e) }
       | "pred" ~> Term ^^ { case e => Pred(e) }
@@ -54,7 +54,7 @@ object SimplyTyped extends StandardTokenParsers {
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
-    case 0 => Zero
+    case 0 => Zero()
     case _ => Succ(intToTerm(n - 1))
   }
   /**
@@ -85,14 +85,14 @@ object SimplyTyped extends StandardTokenParsers {
 
   /** Is the given term a numeric value? */
   def isNumericVal(t: Term): Boolean = t match {
-    case Zero => true
+    case _: Zero => true
     case Succ(x) => isNumericVal(x)
     case _ => false
   }
 
   /** Is the given term a value? */
   def isValue(t: Term): Boolean = t match {
-    case True | False => true
+    case _: True | _: False => true
     case _: Abstraction => true
     case Paire(e1, e2) => isValue(e1) && isValue(e2)
     case _ => isNumericVal(t)
@@ -101,7 +101,7 @@ object SimplyTyped extends StandardTokenParsers {
   /** Free variables computation */
   def fv(t: Term): Set[String] = (
     t match {
-      case True | False | Zero => Set()
+      case _: True | _: False | _: Zero => Set()
       case IsZero(e) => fv(e)
       case Pred(e) => fv(e)
       case Succ(e) => fv(e)
@@ -122,7 +122,7 @@ object SimplyTyped extends StandardTokenParsers {
    */
   def alpha(t: Term, x: String, y: String): Term = (
     t match {
-      case True | False | Zero => t
+      case _: True | _: False | _: Zero => t
       case Succ(e) => Succ(alpha(e, x, y))
       case Pred(e) => Pred(alpha(e, x, y))
       case IsZero(e) => IsZero(alpha(e, x, y))
@@ -149,7 +149,7 @@ object SimplyTyped extends StandardTokenParsers {
   /** Substitution rule */
   def subst(t: Term, x: String, s: Term): Term = {
     t match {
-      case True | False | Zero => t
+      case _: True | _: False | _: Zero => t
       case Variable(name) => if (x == name) s else t
       case Succ(e) => Succ(subst(e, x, s))
       case Pred(e) => Pred(subst(e, x, s))
@@ -177,11 +177,11 @@ object SimplyTyped extends StandardTokenParsers {
     //Computation rules: 
     case Application(Abstraction(name, tpe, term), t2) if isValue(t2) => subst(term, name, t2)
     case Pred(Succ(x)) if isNumericVal(x) => x
-    case Pred(Zero) => Zero
-    case If(True, thn, _) => thn
-    case If(False, _, els) => els
-    case IsZero(Zero) => True
-    case IsZero(Succ(x)) if isNumericVal(x) => False
+    case Pred(e: Zero) => e
+    case If(_: True, thn, _) => thn
+    case If(_: False, _, els) => els
+    case IsZero(_: Zero) => True()
+    case IsZero(Succ(x)) if isNumericVal(x) => False()
 
     //Congruence rules:
     case Application(t1, t2) if isValue(t1) => Application(t1, reduce(t2))
@@ -211,8 +211,8 @@ object SimplyTyped extends StandardTokenParsers {
    *  @return    the computed type
    */
   def typeof(ctx: Context, t: Term): Type = t match {
-    case True | False => TypeBool
-    case Zero => TypeNat
+    case _: True | _: False => TypeBool
+    case _: Zero => TypeNat
     case Pred(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
     case Succ(e) => if (typeof(ctx, e) == TypeNat) TypeNat else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
     case IsZero(e) => if (typeof(ctx, e) == TypeNat) TypeBool else throw TypeError(t.pos, "Parameter type mismatched: expected " + TypeNat + " found " + TypeBool)
