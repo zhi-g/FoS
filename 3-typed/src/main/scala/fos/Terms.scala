@@ -56,6 +56,18 @@ case class Second(term: Term) extends Term {
   override def toString() = "snd " + term
 }
 
+case class Inl(term: Term, tpe: Type) extends Term {
+  override def toString() = "inl " + term + " as " + tpe
+}
+
+case class Inr(term: Term, tpe: Type) extends Term {
+  override def toString() = "inr " + term + " as " + tpe
+}
+
+case class Case(term1: Term, name1: Variable, term2: Term, name2: Variable, term3: Term) extends Term {
+  override def toString() = "case " + term1 + " of inl " + name1 + " => " + term2 + " | inr " + name2 + " => " + term3
+}
+
 /** Abstract Syntax Trees for types. */
 abstract class Type extends Term
 
