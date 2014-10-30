@@ -51,9 +51,9 @@ object SimplyTyped extends StandardTokenParsers {
       | (("{" ~> Term) <~ ",") ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
       | "fst" ~> Term ^^ { case e => First(e) }
       | "snd" ~> Term ^^ { case e => Second(e) }
-      | ("inl" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inl(e1, e2)}
-      | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2)}
-      | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5)}
+      | ("inl" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inl(e1, e2) }
+      | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
+      | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
@@ -66,6 +66,7 @@ object SimplyTyped extends StandardTokenParsers {
   def Type: Parser[Type] = positioned(
     SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeFunc(tpe1, tpe2)) }
       | SimpleType ~ ("*" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypePaire(tpe1, tpe2)) }
+      | SimpleType ~ ("+" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeSum(tpe1, tpe2)) }
       | failure("illegal start of type"))
 
   def SimpleType: Parser[Type] = positioned(
@@ -98,6 +99,8 @@ object SimplyTyped extends StandardTokenParsers {
     case _: True | _: False => true
     case _: Abstraction => true
     case Paire(e1, e2) => isValue(e1) && isValue(e2)
+    case _: Inl => true
+    case _: Inr => true
     case _ => isNumericVal(t)
   }
 
