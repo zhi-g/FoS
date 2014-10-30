@@ -202,6 +202,15 @@ object SimplyTyped extends StandardTokenParsers {
     case Paire(e1, e2) if !isValue(e1) => Paire(reduce(e1), e2)
     case Paire(e1, e2) => Paire(e1, reduce(e2))
 
+    //Reduction rules for sums:
+    case Case(e1, e2, e3, e4, e5) => e1 match {
+      case Inl(Variable(x), typ) => subst(e2, x, e3)
+      case Inr(Variable(x), typ) => subst(e4, x, e5)
+    }
+    case Case(e1, e2, e3, e4, e5) => Case(reduce(e1), e2, e3, e4, e5)
+    case Inl(t, typ) => Inl(reduce(t), typ)
+    case Inr(t, typ) => Inr(reduce(t), typ)    
+    
     case _ =>
       throw NoRuleApplies(t)
   }
