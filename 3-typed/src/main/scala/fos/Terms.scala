@@ -68,6 +68,10 @@ case class Case(term1: Term, name1: Variable, term2: Term, name2: Variable, term
   override def toString() = "case " + term1 + " of inl " + name1 + " => " + term2 + " | inr " + name2 + " => " + term3
 }
 
+case class Fix(term: Term) extends Term {
+  override def toString() = "fix " + term
+}
+
 /** Abstract Syntax Trees for types. */
 abstract class Type extends Term
 
