@@ -35,6 +35,10 @@ object SimplyTyped extends StandardTokenParsers {
    *               | "{" Term "," Term "}"
    *               | "fst" Term
    *               | "snd" Term
+   *               | "inl" Term "as" Type
+   *               | "inr" Term "as" Type
+   *               | "case" Term "of" "inl" ident "=>" Term "|" "inr" ident "=>" Term
+   *               | "fix" Term
    */
   def SimpleTerm: Parser[Term] = positioned(
     "true" ^^^ True()
@@ -122,6 +126,7 @@ object SimplyTyped extends StandardTokenParsers {
       case Inl(e, tpe) => fv(e)
       case Inr(e, tpe) => fv(e)
       case Case(t1, x1, t2, x2, t3) => fv(t1).union(fv(x1)).union(fv(t2)).union(fv(x2)).union(fv(t3)) // Is that correct?
+      case Fix(e) => fv(e)
     })
 
   /**
@@ -146,6 +151,7 @@ object SimplyTyped extends StandardTokenParsers {
       case Inl(e, tpe) => Inl(alpha(e, x, y), tpe)
       case Inr(e, tpe) => Inr(alpha(e, x, y), tpe)
       case Case(t1, x1, t2, x2, t3) => Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, alpha(t3, x, y)) // Not sure about this one
+      case Fix(e) => Fix(alpha(e,x,y)) // Not sure about this one either
     })
 
   /** Find a name that is not already in the term*/
@@ -185,6 +191,8 @@ object SimplyTyped extends StandardTokenParsers {
       case Inl(e, tpe) => Inl(subst(e, x, s), tpe)
       case Inr(e, tpe) => Inr(subst(e, x, s), tpe)
       case Case(t1, x1, t2, x2, t3) => Case(subst(t1, x, s), x1, subst(t2, x, s), x2, subst(t3, x, s))
+      // Not sure about this
+      case Fix(e) => Fix(subst(e, x, s))
     }
   }
 
@@ -219,10 +227,18 @@ object SimplyTyped extends StandardTokenParsers {
     case Case(e1, e2, e3, e4, e5) => e1 match {
       case Inl(Variable(x), typ) => subst(e2, x, e3)
       case Inr(Variable(x), typ) => subst(e4, x, e5)
+      case _ => Case(reduce(e1), e2, e3, e4, e5)
     }
-    case Case(e1, e2, e3, e4, e5) => Case(reduce(e1), e2, e3, e4, e5)
     case Inl(t, typ) => Inl(reduce(t), typ)
     case Inr(t, typ) => Inr(reduce(t), typ)
+    
+    // Reduction rules for fix
+    case Fix(e) => e match {
+      case Abstraction(name, tpe, term) => subst(term, name, t)
+      case _ => Fix(reduce(t))
+    }
+    
+    // Terms for which NoRuleApplies
     case _ =>
       throw NoRuleApplies(t)
   }
@@ -294,6 +310,7 @@ object SimplyTyped extends StandardTokenParsers {
         else throw TypeError(t.pos, "Type mismatched: type " + retType1 + " and " + retType2 + " should match")
       case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + typeof(ctx, e1))
     }
+    case Fix(e) => typeof(ctx, e)
     case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") // Should never occur
 
   }

@@ -1,0 +1,3 @@
+(\name:tpe. term) t2 => [name->t2]term        = subs(term, name, t2)
+
+fix(\name:tpe. term) => [name->fix(t)]term    = subs(term, name, fix(t))
