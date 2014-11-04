@@ -10,8 +10,8 @@ object ExerciseBuild extends Build {
     name         := "fos-project3",
     version      := "1.0",
     scalaVersion := "2.10.4",
-    scalacOptions ++= List("-unchecked", "-deprecation"))
-    
+    scalacOptions ++= List("-unchecked", "-deprecation"),
+    libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test")
 
   val filesToInclude = Seq("src/main/scala/fos/SimplyTyped.scala", "src/main/scala/fos/Terms.scala")
 
