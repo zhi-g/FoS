@@ -11,6 +11,7 @@ object ExerciseBuild extends Build {
     version      := "1.0",
     scalaVersion := "2.10.4",
     scalacOptions ++= List("-unchecked", "-deprecation"))
+    
 
   val filesToInclude = Seq("src/main/scala/fos/SimplyTyped.scala", "src/main/scala/fos/Terms.scala")
 
