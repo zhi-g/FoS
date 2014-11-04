@@ -35,6 +35,11 @@ object SimplyTyped extends StandardTokenParsers {
    *               | "{" Term "," Term "}"
    *               | "fst" Term
    *               | "snd" Term
+   *               | "inl" Term "as" Type
+   *               | "inr" Term "as" Type
+   *               | "case" Term "of" "inl" ident "=>" Term "|" "inr" ident "=>" Term
+   *               | "fix" Term
+   *               | "letrec" ident ":" Type "=" term "in" term //translates to -> let x = fix (\x:T1.t1) in t2
    */
   def SimpleTerm: Parser[Term] = positioned(
     "true" ^^^ True()
@@ -54,6 +59,8 @@ object SimplyTyped extends StandardTokenParsers {
       | ("inl" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inl(e1, e2) }
       | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
       | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
+      | "fix" ~> Term ^^ {case e => Fix(e)}
+      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, Fix(t1)), t2)}
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
@@ -118,6 +125,10 @@ object SimplyTyped extends StandardTokenParsers {
       case Paire(e1, e2) => fv(e1).union(fv(e2))
       case First(e) => fv(e)
       case Second(e) => fv(e)
+      case Inl(e, tpe) => fv(e)
+      case Inr(e, tpe) => fv(e)
+      case Case(t1, x1, t2, x2, t3) => fv(t1).union(fv(x1)).union(fv(t2)).union(fv(x2)).union(fv(t3)) // Is that correct?
+      case Fix(e) => fv(e)
     })
 
   /**
@@ -139,6 +150,10 @@ object SimplyTyped extends StandardTokenParsers {
       case Paire(e1, e2) => Paire(alpha(e1, x, y), alpha(e2, x, y))
       case First(e) => First(alpha(e, x, y))
       case Second(e) => Second(alpha(e, x, y))
+      case Inl(e, tpe) => Inl(alpha(e, x, y), tpe)
+      case Inr(e, tpe) => Inr(alpha(e, x, y), tpe)
+      case Case(t1, x1, t2, x2, t3) => Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, alpha(t3, x, y)) // Not sure about this one
+      case Fix(e) => Fix(alpha(e,x,y)) // Not sure about this one either
     })
 
   /** Find a name that is not already in the term*/
@@ -175,6 +190,11 @@ object SimplyTyped extends StandardTokenParsers {
       case Paire(e1, e2) => Paire(subst(e1, x, s), subst(e2, x, s))
       case First(e) => First(subst(e, x, s))
       case Second(e) => Second(subst(e, x, s))
+      case Inl(e, tpe) => Inl(subst(e, x, s), tpe)
+      case Inr(e, tpe) => Inr(subst(e, x, s), tpe)
+      case Case(t1, x1, t2, x2, t3) => Case(subst(t1, x, s), x1, subst(t2, x, s), x2, subst(t3, x, s))
+      // Not sure about this
+      case Fix(e) => Fix(subst(e, x, s))
     }
   }
 
@@ -205,6 +225,22 @@ object SimplyTyped extends StandardTokenParsers {
     case Paire(e1, e2) if !isValue(e1) => Paire(reduce(e1), e2)
     case Paire(e1, e2) => Paire(e1, reduce(e2))
 
+    //Reduction rules for sums:
+    case Case(e1, e2, e3, e4, e5) => e1 match {
+      case Inl(Variable(x), typ) => subst(e2, x, e3)
+      case Inr(Variable(x), typ) => subst(e4, x, e5)
+      case _ => Case(reduce(e1), e2, e3, e4, e5)
+    }
+    case Inl(t, typ) => Inl(reduce(t), typ)
+    case Inr(t, typ) => Inr(reduce(t), typ)
+    
+    // Reduction rules for fix
+    case Fix(e) => e match {
+      case Abstraction(name, tpe, term) => subst(term, name, t)
+      case _ => Fix(reduce(t))
+    }
+    
+    // Terms for which NoRuleApplies
     case _ =>
       throw NoRuleApplies(t)
   }
@@ -258,6 +294,25 @@ object SimplyTyped extends StandardTokenParsers {
         case _ => throw TypeError(e.pos, "Type mismatched: expected pair type, found " + tpe)
       }
     case Paire(e1, e2) => TypePaire(typeof(ctx, e1), typeof(ctx, e2))
+    case Inl(e, tpe) => tpe match {
+      case TypeSum(tpe1, _) if(tpe1 == typeof(ctx, e)) => tpe
+      case TypeSum(_, tpe2) => throw TypeError(t.pos, "Type mismatched: expected " + tpe + ", found " + typeof(ctx, e) + " + " + tpe2)
+      case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + tpe)
+    }
+    case Inr(e, tpe) => tpe match {
+      case TypeSum(_, tpe2) if(tpe2 == typeof(ctx, e)) => tpe
+      case TypeSum(tpe1, _) => throw TypeError(t.pos, "Type mismatched: expected " + tpe + ", found " + tpe1 + " + " + typeof(ctx, e))
+      case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + tpe)
+    }
+    case Case(e1, Variable(e2), e3, Variable(e4), e5) => typeof(ctx, e1) match { // Should we check if e2 or e4 are already in the context and rename them if so?
+      case TypeSum(tpe1, tpe2) =>
+        val retType1 = typeof((e2, tpe1)::ctx, e3)
+        val retType2 = typeof((e4, tpe2)::ctx, e5)
+        if(retType1 == retType2) retType1
+        else throw TypeError(t.pos, "Type mismatched: type " + retType1 + " and " + retType2 + " should match")
+      case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + typeof(ctx, e1))
+    }
+    case Fix(e) => typeof(ctx, e)
     case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") // Should never occur
 
   }
