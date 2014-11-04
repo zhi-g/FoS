@@ -39,6 +39,7 @@ object SimplyTyped extends StandardTokenParsers {
    *               | "inr" Term "as" Type
    *               | "case" Term "of" "inl" ident "=>" Term "|" "inr" ident "=>" Term
    *               | "fix" Term
+   *               | "letrec" ident ":" Type "=" term "in" term //translates to -> let x = fix (\x:T1.t1) in t2
    */
   def SimpleTerm: Parser[Term] = positioned(
     "true" ^^^ True()
@@ -59,6 +60,7 @@ object SimplyTyped extends StandardTokenParsers {
       | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
       | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
       | "fix" ~> Term ^^ {case e => Fix(e)}
+      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, Fix(t1)), t2)}
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
