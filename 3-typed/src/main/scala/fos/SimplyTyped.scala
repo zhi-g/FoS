@@ -11,7 +11,7 @@ import scala.util.parsing.input._
 object SimplyTyped extends StandardTokenParsers {
   lexical.delimiters ++= List("(", ")", "\\", ".", ":", "=", "->", "{", "}", ",", "*", "|", "=>", "+")
   lexical.reserved ++= List("Bool", "Nat", "true", "false", "if", "then", "else", "succ",
-    "pred", "iszero", "let", "in", "fst", "snd", "inl", "inr", "as", "case", "of", "fix", "letrec")
+    "pred", "iszero", "let", "in", "fst", "snd", "inl", "inr", "as", "case", "of", "fix", "letrec", "in")
 
   /**
    * Term     ::= SimpleTerm { SimpleTerm }
@@ -52,8 +52,7 @@ object SimplyTyped extends StandardTokenParsers {
       | ident ^^ { case e => Variable(e)}
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
       | "(" ~> Term <~ ")" ^^ { case e => e }
-      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, Fix(t1)), t2)}
-      | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t1), t2) }
+      | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t2), t1) }
       | (("{" ~> Term) <~ ",") ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
       | "fst" ~> Term ^^ { case e => First(e) }
       | "snd" ~> Term ^^ { case e => Second(e) }
@@ -61,8 +60,8 @@ object SimplyTyped extends StandardTokenParsers {
       | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
       | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
       | "fix" ~> Term ^^ {case e => Fix(e)}
-      | failure("illegal start of simple term")
-    )
+      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t2), Fix(Abstraction(name, tpe, t1))) }
+      | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
     case 0 => Zero()
@@ -72,9 +71,10 @@ object SimplyTyped extends StandardTokenParsers {
    * Type       ::= SimpleType [ "->" Type ]
    */
   def Type: Parser[Type] = positioned(
-    SimpleType ~ ("->" ~> Type).* ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeFunc(tpe1, tpe2)) }
+    SimpleType ~ ("->" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeFunc(tpe1, tpe2)) }
       | SimpleType ~ ("*" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypePaire(tpe1, tpe2)) }
       | SimpleType ~ ("+" ~> Type).+ ^^ { case e1 ~ e2 => (e1 :: e2).reduceRight((tpe1: Type, tpe2: Type) => TypeSum(tpe1, tpe2)) }
+      | SimpleType
       | failure("illegal start of type"))
 
   def SimpleType: Parser[Type] = positioned(
@@ -311,10 +311,13 @@ object SimplyTyped extends StandardTokenParsers {
         val retType2 = typeof((e4, tpe2)::ctx, e5)
         if(retType1 == retType2) retType1
         else throw TypeError(t.pos, "Type mismatched: type " + retType1 + " and " + retType2 + " should match")
-      case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + typeof(ctx, e1))
+      case t => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + t)
     }
-    case Fix(e) => typeof(ctx, e)
-    
+    case Fix(e) => typeof(ctx, e) match {
+      case TypeFunc(t1, t2) if(t1 == t2) => t1
+      case TypeFunc(t1, t2) => throw TypeError(t.pos, "Type mismatched: expected " + t1 + "->" + t1 + " or " + t2 + "->" + t2 + ", found " + t1 + "->" + t2)
+      case t => throw TypeError(t.pos, "Type mismatched: expected function type, found " + t)
+    }
     case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") // Should never occur
 
   }
