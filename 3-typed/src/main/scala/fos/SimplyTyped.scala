@@ -49,7 +49,7 @@ object SimplyTyped extends StandardTokenParsers {
       | "pred" ~> Term ^^ { case e => Pred(e) }
       | "iszero" ~> Term ^^ { case e => IsZero(e) }
       | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ { case e1 ~ e2 ~ e3 => If(e1, e2, e3) }
-      | ident ^^ { case e => Variable(e)}
+      | ident ^^ { case e => Variable(e) }
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
       | "(" ~> Term <~ ")" ^^ { case e => e }
       | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t2), t1) }
@@ -59,8 +59,8 @@ object SimplyTyped extends StandardTokenParsers {
       | ("inl" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inl(e1, e2) }
       | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
       | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
-      | "fix" ~> Term ^^ {case e => Fix(e)}
-      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t2), Fix(Abstraction(name, tpe, t1))) }
+      | "fix" ~> Term ^^ { case e => Fix(e) }
+      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t2), Fix(Abstraction(name, tpe, t1))) }
       | failure("illegal start of simple term"))
 
   def intToTerm(n: Int): Term = n match {
@@ -153,8 +153,12 @@ object SimplyTyped extends StandardTokenParsers {
       case Second(e) => Second(alpha(e, x, y))
       case Inl(e, tpe) => Inl(alpha(e, x, y), tpe)
       case Inr(e, tpe) => Inr(alpha(e, x, y), tpe)
-      case Case(t1, x1, t2, x2, t3) => Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, alpha(t3, x, y)) // Not sure about this one
-      case Fix(e) => Fix(alpha(e,x,y)) // Not sure about this one either
+      case Case(t1, x1: Variable, t2, x2: Variable, t3) => // Not sure about this one
+        if (x1.name != y && x2.name != y) Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, alpha(t3, x, y))
+        if (x1.name == y && x2.name != y) Case(alpha(t1, x, y), x1, t2, x2, alpha(t3, x, y))
+        if (x1.name != y && x2.name == y) Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, t3)
+        Case(alpha(t1, x, y), x1, t2, x2, t3)
+      case Fix(e) => Fix(alpha(e, x, y)) // Not sure about this one either
     })
 
   /** Find a name that is not already in the term*/
@@ -193,7 +197,11 @@ object SimplyTyped extends StandardTokenParsers {
       case Second(e) => Second(subst(e, x, s))
       case Inl(e, tpe) => Inl(subst(e, x, s), tpe)
       case Inr(e, tpe) => Inr(subst(e, x, s), tpe)
-      case Case(t1, x1, t2, x2, t3) => Case(subst(t1, x, s), x1, subst(t2, x, s), x2, subst(t3, x, s))
+      case Case(t1, x1, t2, x2, t3) =>
+        if (x1.name != x && x2.name != x) Case(subst(t1, x, s), x1, subst(t2, x, s), x2, subst(t3, x, s))
+        if (x1.name == x && x2.name != x) Case(subst(t1, x, s), x1, t2, x2, subst(t3, x, s))
+        if (x1.name != x && x2.name == x) Case(subst(t1, x, s), x1, subst(t2, x, s), x2,t3)
+        Case(subst(t1, x, s), x1, t2, x2, t3)
       // Not sure about this
       case Fix(e) => Fix(subst(e, x, s))
     }
@@ -228,19 +236,19 @@ object SimplyTyped extends StandardTokenParsers {
 
     //Reduction rules for sums:
     case Case(e1, Variable(e2), e3, Variable(e4), e5) => e1 match {
-      case Inl(t, typ) if(isValue(t)) => subst(e3, e2, t)
-      case Inr(t, typ) if(isValue(t))=> subst(e5, e4, t)
+      case Inl(t, typ) if (isValue(t)) => subst(e3, e2, t)
+      case Inr(t, typ) if (isValue(t)) => subst(e5, e4, t)
       case _ => Case(reduce(e1), Variable(e2), e3, Variable(e4), e5)
     }
     case Inl(t, typ) => Inl(reduce(t), typ)
     case Inr(t, typ) => Inr(reduce(t), typ)
-    
+
     // Reduction rules for fix
     case Fix(e) => e match {
       case Abstraction(name, tpe, term) => subst(term, name, t)
       case _ => Fix(reduce(t))
     }
-    
+
     // Terms for which NoRuleApplies
     case _ =>
       throw NoRuleApplies(t)
@@ -296,25 +304,25 @@ object SimplyTyped extends StandardTokenParsers {
       }
     case Paire(e1, e2) => TypePaire(typeof(ctx, e1), typeof(ctx, e2))
     case Inl(e, tpe) => tpe match {
-      case TypeSum(tpe1, _) if(tpe1 == typeof(ctx, e)) => tpe
+      case TypeSum(tpe1, _) if (tpe1 == typeof(ctx, e)) => tpe
       case TypeSum(_, tpe2) => throw TypeError(t.pos, "Type mismatched: expected " + tpe + ", found " + typeof(ctx, e) + " + " + tpe2)
       case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + tpe)
     }
     case Inr(e, tpe) => tpe match {
-      case TypeSum(_, tpe2) if(tpe2 == typeof(ctx, e)) => tpe
+      case TypeSum(_, tpe2) if (tpe2 == typeof(ctx, e)) => tpe
       case TypeSum(tpe1, _) => throw TypeError(t.pos, "Type mismatched: expected " + tpe + ", found " + tpe1 + " + " + typeof(ctx, e))
       case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + tpe)
     }
     case Case(e1, Variable(e2), e3, Variable(e4), e5) => typeof(ctx, e1) match { // Should we check if e2 or e4 are already in the context and rename them if so?
       case TypeSum(tpe1, tpe2) =>
-        val retType1 = typeof((e2, tpe1)::ctx, e3)
-        val retType2 = typeof((e4, tpe2)::ctx, e5)
-        if(retType1 == retType2) retType1
+        val retType1 = typeof((e2, tpe1) :: ctx, e3)
+        val retType2 = typeof((e4, tpe2) :: ctx, e5)
+        if (retType1 == retType2) retType1
         else throw TypeError(t.pos, "Type mismatched: type " + retType1 + " and " + retType2 + " should match")
       case t => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + t)
     }
     case Fix(e) => typeof(ctx, e) match {
-      case TypeFunc(t1, t2) if(t1 == t2) => t1
+      case TypeFunc(t1, t2) if (t1 == t2) => t1
       case TypeFunc(t1, t2) => throw TypeError(t.pos, "Type mismatched: expected " + t1 + "->" + t1 + " or " + t2 + "->" + t2 + ", found " + t1 + "->" + t2)
       case t => throw TypeError(t.pos, "Type mismatched: expected function type, found " + t)
     }
