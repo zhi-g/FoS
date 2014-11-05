@@ -11,7 +11,7 @@ import scala.util.parsing.input._
 object SimplyTyped extends StandardTokenParsers {
   lexical.delimiters ++= List("(", ")", "\\", ".", ":", "=", "->", "{", "}", ",", "*", "|", "=>", "+")
   lexical.reserved ++= List("Bool", "Nat", "true", "false", "if", "then", "else", "succ",
-    "pred", "iszero", "let", "in", "fst", "snd", "inl", "inr", "as", "case", "of")
+    "pred", "iszero", "let", "in", "fst", "snd", "inl", "inr", "as", "case", "of", "fix", "letrec")
 
   /**
    * Term     ::= SimpleTerm { SimpleTerm }
@@ -49,9 +49,10 @@ object SimplyTyped extends StandardTokenParsers {
       | "pred" ~> Term ^^ { case e => Pred(e) }
       | "iszero" ~> Term ^^ { case e => IsZero(e) }
       | ("if" ~> Term) ~ ("then" ~> Term) ~ ("else" ~> Term) ^^ { case e1 ~ e2 ~ e3 => If(e1, e2, e3) }
-      | ident ^^ { case e => Variable(e) }
+      | ident ^^ { case e => Variable(e)}
       | ("\\" ~> ident) ~ (":" ~> Type) ~ ("." ~> Term) ^^ { case e1 ~ e2 ~ e3 => Abstraction(e1, e2, e3) }
       | "(" ~> Term <~ ")" ^^ { case e => e }
+      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, Fix(t1)), t2)}
       | ("let" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ { case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, t1), t2) }
       | (("{" ~> Term) <~ ",") ~ (Term <~ "}") ^^ { case e1 ~ e2 => Paire(e1, e2) }
       | "fst" ~> Term ^^ { case e => First(e) }
@@ -60,8 +61,8 @@ object SimplyTyped extends StandardTokenParsers {
       | ("inr" ~> Term) ~ ("as" ~> Type) ^^ { case e1 ~ e2 => Inr(e1, e2) }
       | ("case" ~> Term <~ "of") ~ ("inl" ~> ident) ~ ("=>" ~> Term <~ "|") ~ ("inr" ~> ident) ~ ("=>" ~> Term) ^^ { case e1 ~ e2 ~ e3 ~ e4 ~ e5 => Case(e1, Variable(e2), e3, Variable(e4), e5) }
       | "fix" ~> Term ^^ {case e => Fix(e)}
-      | ("letrec" ~> ident) ~ (":" ~> Type) ~ ("=" ~> Term) ~ ("in" ~> Term) ^^ {case name ~ tpe ~ t1 ~ t2 => Application(Abstraction(name, tpe, Fix(t1)), t2)}
-      | failure("illegal start of simple term"))
+      | failure("illegal start of simple term")
+    )
 
   def intToTerm(n: Int): Term = n match {
     case 0 => Zero()
@@ -313,6 +314,7 @@ object SimplyTyped extends StandardTokenParsers {
       case _ => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + typeof(ctx, e1))
     }
     case Fix(e) => typeof(ctx, e)
+    
     case _ => throw TypeError(t.pos, "Unable to typecheck, something went wrong") // Should never occur
 
   }
