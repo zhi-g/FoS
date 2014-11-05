@@ -13,6 +13,7 @@ project/plugins/project/
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
+3-typed/.classpath
 
 */bin/
 */.cache
