@@ -153,23 +153,19 @@ object SimplyTyped extends StandardTokenParsers {
       case Second(e) => Second(alpha(e, x, y))
       case Inl(e, tpe) => Inl(alpha(e, x, y), tpe)
       case Inr(e, tpe) => Inr(alpha(e, x, y), tpe)
-      case Case(t1, x1: Variable, t2, x2: Variable, t3) => // Not sure about this one
+      case Case(t1, x1: Variable, t2, x2: Variable, t3) =>
         if (x1.name != y && x2.name != y) Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, alpha(t3, x, y))
         if (x1.name == y && x2.name != y) Case(alpha(t1, x, y), x1, t2, x2, alpha(t3, x, y))
         if (x1.name != y && x2.name == y) Case(alpha(t1, x, y), x1, alpha(t2, x, y), x2, t3)
         Case(alpha(t1, x, y), x1, t2, x2, t3)
-      case Fix(e) => Fix(alpha(e, x, y)) // Not sure about this one either
+      case Fix(e) => Fix(alpha(e, x, y))
     })
 
   /** Find a name that is not already in the term*/
-  def newName(t: Term): String = {
-    def newNameAcc(name: String, i: Int, t: Term): String = if (fv(t).contains(name + i)) newNameAcc(name, i + 1, t) else (name + i)
-    t match {
-      case Abstraction(name, tpe, term) =>
-        newNameAcc(name, 1, term)
-      case _ =>
-        throw NoRuleApplies(t)
-    }
+  def newName(t: Term, name: String, ctx: Context): String = {
+    def newNameAcc(name: String, i: Int, t: Term): String = if (fv(t).contains(name + i) || ctx.contains(name + i)) newNameAcc(name, i + 1, t) else (name + i)
+    newNameAcc(name, 1, t)
+
   }
 
   /** Substitution rule */
@@ -187,7 +183,7 @@ object SimplyTyped extends StandardTokenParsers {
         } else if (!fv(s).contains(name)) {
           Abstraction(name, tpe, subst(term, x, s))
         } else {
-          val name1 = newName(t)
+          val name1 = newName(t, name, List())
           Abstraction(name1, tpe, subst(alpha(term, name1, name), x, s))
         }
       }
@@ -200,9 +196,8 @@ object SimplyTyped extends StandardTokenParsers {
       case Case(t1, x1, t2, x2, t3) =>
         if (x1.name != x && x2.name != x) Case(subst(t1, x, s), x1, subst(t2, x, s), x2, subst(t3, x, s))
         if (x1.name == x && x2.name != x) Case(subst(t1, x, s), x1, t2, x2, subst(t3, x, s))
-        if (x1.name != x && x2.name == x) Case(subst(t1, x, s), x1, subst(t2, x, s), x2,t3)
+        if (x1.name != x && x2.name == x) Case(subst(t1, x, s), x1, subst(t2, x, s), x2, t3)
         Case(subst(t1, x, s), x1, t2, x2, t3)
-      // Not sure about this
       case Fix(e) => Fix(subst(e, x, s))
     }
   }
@@ -282,7 +277,7 @@ object SimplyTyped extends StandardTokenParsers {
     case Abstraction(name, tpe, term) =>
       ctx.find(x => x._1 == name) match {
         case Some(x) =>
-          val neName = newName(t)
+          val neName = newName(t, name, ctx)
           TypeFunc(tpe, typeof((neName, tpe) :: ctx, alpha(term, neName, name)))
         case None => TypeFunc(tpe, typeof((name, tpe) :: ctx, term))
       }
@@ -315,10 +310,25 @@ object SimplyTyped extends StandardTokenParsers {
     }
     case Case(e1, Variable(e2), e3, Variable(e4), e5) => typeof(ctx, e1) match { // Should we check if e2 or e4 are already in the context and rename them if so?
       case TypeSum(tpe1, tpe2) =>
-        val retType1 = typeof((e2, tpe1) :: ctx, e3)
-        val retType2 = typeof((e4, tpe2) :: ctx, e5)
+        val retType1 = ctx.find(x => x._1 == e2) match {
+          case Some(_) =>
+            val newName1 = newName(e3, e2, ctx)
+            typeof((newName1, tpe1) :: ctx, alpha(e3, newName1, e2))
+          case _ =>
+            typeof((e2, tpe2) :: ctx, e3)
+        }
+
+        val retType2 = ctx.find(x => x._1 == e4) match {
+          case Some(_) =>
+            val newName2 = newName(e5, e4, ctx)
+            typeof((newName2, tpe2) :: ctx, alpha(e5, newName2, e4))
+          case _ =>
+            typeof((e4, tpe2) :: ctx, e5)
+        }
+
         if (retType1 == retType2) retType1
         else throw TypeError(t.pos, "Type mismatched: type " + retType1 + " and " + retType2 + " should match")
+
       case t => throw TypeError(t.pos, "Type mismatched: expected sum type, found " + t)
     }
     case Fix(e) => typeof(ctx, e) match {
