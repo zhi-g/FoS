@@ -12,6 +12,7 @@ abstract class Type {
 }
 
 case class TypeVar(name: String) extends Type
+  //   ... To complete ... 
 case class TypeFun(tp1: Type, tp2: Type) extends Type
 case class TypeNat extends Type
 case class TypeBool extends Type
@@ -36,25 +37,24 @@ object Type {
   //   ... To complete ...   
 }
 
-class Constraint {
-  val tp: Pair[Type, Type]
-  val pos: Int
-}
+//abstract class Constraint { // (see: Implementation Hints)
+//  val tp: Pair[Type, Type]
+//  val pos: Int
+//}
 
 abstract class Substitution extends (Type => Type) {
 
   var indent = 0
 
   //   ... To complete ... 
+  var mappings: List[Pair[Type, Type]] = List()
+  
   def apply(tp: Type): Type = {
     //println("  " * indent + "in: " + tp + "   subst: " + this)
     indent = indent + 1
     val result = tp match {
   //   ... To complete ... 
-      case TypeNat() => tp
-      case TypeBool() => tp
-      case TypeFun(tp1, tp2) => apply(tp1, tp2)._2
-      case TypeVar(name) => this(name)
+      case TypeVar(name) => this(tp) // This probably doesn't work, but I'm confused as to how Substitutions work
     }
     indent = indent - 1
     //println("  " * indent + "out: " + result + "   subst: " + this)
@@ -62,7 +62,7 @@ abstract class Substitution extends (Type => Type) {
   }
   override def toString() = ""
 
-  def apply(p: (Type, Type)): (Type, Type) = p match {
+  def apply(p: (Type, Type)): (Type, Type) = p match { // Should we replace '(Type, Type)' by 'Constraint' ?
     case Pair(t1, t2) => (this(t1), this(t2))
   }
 
@@ -70,8 +70,9 @@ abstract class Substitution extends (Type => Type) {
     env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) }
 
   //   ... To complete ... 
-  def extend(c: Constraint): Substitution = {
-    this :: (c.tp._1,c.tp._2)
+  def extend(c: (Type, Type)): Substitution = {
+    mappings = c :: mappings
+    this
   }
 }
 
@@ -81,6 +82,6 @@ object emptySubst extends Substitution {
 }
 
 /** The empty list of constraints. */
-object emptyConstraintList extends Constraint {
-  val constraints: List[Constraint] = List()
+object emptyConstraintList {
+  val constraints: List[(Type, Type)] = List()
 }
