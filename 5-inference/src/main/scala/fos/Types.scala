@@ -5,14 +5,14 @@ import scala.collection.immutable.{Set, ListSet}
 abstract class Type {
   override def toString() = this match {
     case TypeVar(a) => a
-    case TypeFun(a, b) => "(" + a + " -> " + b + ")"
+    case TypeFun(a, b) => s"($a->$b)"//"(" + a + " -> " + b + ")"
     case _: TypeNat => "Nat"
     case _: TypeBool => "Bool"
   }
 }
 
 case class TypeVar(name: String) extends Type
-case class TypeFun(name1: String, name2: String) extends Type
+case class TypeFun(tp1: Type, tp2: Type) extends Type
 case class TypeNat extends Type
 case class TypeBool extends Type
 
@@ -20,11 +20,25 @@ case class TypeBool extends Type
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
   //   ... To complete ... 
+  def instantiate: Type = {
+    def newName(oldName: String) = oldName+"1" // This seems too easy
+    tp match {
+      case TypeNat() => tp
+      case TypeBool() => tp
+      case TypeVar(a) => TypeVar(newName(a))
+      case TypeFun(tp1, tp2) => TypeFun(TypeScheme(args, tp1).instantiate, TypeScheme(args, tp2).instantiate)
+    }
+  }
   override def toString() = args.mkString("[", ", ", "].") + tp
 }
 
 object Type {
-  //   ... To complete ... 
+  //   ... To complete ...   
+}
+
+class Constraint {
+  val tp: Pair[Type, Type]
+  val pos: Int
 }
 
 abstract class Substitution extends (Type => Type) {
@@ -37,6 +51,10 @@ abstract class Substitution extends (Type => Type) {
     indent = indent + 1
     val result = tp match {
   //   ... To complete ... 
+      case TypeNat() => tp
+      case TypeBool() => tp
+      case TypeFun(tp1, tp2) => apply(tp1, tp2)._2
+      case TypeVar(name) => this(name)
     }
     indent = indent - 1
     //println("  " * indent + "out: " + result + "   subst: " + this)
@@ -52,9 +70,17 @@ abstract class Substitution extends (Type => Type) {
     env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) }
 
   //   ... To complete ... 
+  def extend(c: Constraint): Substitution = {
+    this :: (c.tp._1,c.tp._2)
+  }
 }
 
 /** The empty substitution. */
 object emptySubst extends Substitution {
   def lookup(t: TypeVar) = t
+}
+
+/** The empty list of constraints. */
+object emptyConstraintList extends Constraint {
+  val constraints: List[Constraint] = List()
 }
