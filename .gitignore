@@ -1,5 +1,7 @@
 *.class
 *.log
+*.pdf
+
 # sbt specific
 .cache/
 .history/
@@ -18,3 +20,7 @@ scalatest*
 
 */bin/
 */.cache
+
+# VIM specific
+*.swp
+*.un~
