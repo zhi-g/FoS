@@ -57,8 +57,6 @@ class TwoPhaseInferencer extends TypeInferencers {
   // [tpeVar -> tpe1] tpe2
   def substSub(tpeVar: String, tpe1: Type, tpe2: Type): Type = {
     tpe2 match {
-      case _: TypeNat => TypeNat()
-      case _: TypeBool => TypeBool()
       case TypeFun(a, b) => TypeFun(substSub(tpeVar, tpe1, a), substSub(tpeVar, tpe2, b))
       case TypeVar(x) if x == tpeVar => tpe1
       case _ => tpe2
