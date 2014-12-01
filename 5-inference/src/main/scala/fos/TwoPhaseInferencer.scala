@@ -54,7 +54,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       val c2 = new Constraint(r2.tpe, r3.tpe)
       TypingResult(r2.tpe,  ( c1 :: c2 :: Nil ) ::: r1.c ::: r2.c ::: r3.c )
       
-    case Abs(v, tp, t) =>
+    case Abs(v, tp, t) => // Note: this might be wrong, as the instructions seem to suggest we should introduce a fresh variable.  
       val r1 = collect((v, lookup(env, v)) :: env, t)
       if (r1.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
@@ -65,7 +65,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       val r2 = collect(env, t2)
       if (r1.tpe == null || r2.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
-      val x = (TypeScheme(List(), TypeVar("x"))).instantiate // Instantiate a fresh TypeVar
+      val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
       val c1 = new Constraint(r1.tpe,  TypeFun(r2.tpe, x))
       TypingResult(x, c1 :: r1.c ::: r2.c)
   }
