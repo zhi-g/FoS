@@ -66,7 +66,7 @@ abstract class Substitution extends (Type => Type) {
     result
   }
   override def toString() = {
-    "[" + (for (constr <- mappings) yield constr._1 + "->" + constr._2).mkString(",") + "]"
+    (for (constr <- mappings) yield constr._1 + "->" + constr._2).mkString("[", ",", "]")
   }
 
   def apply(p: (Type, Type)): (Type, Type) = p match { // Should we replace '(Type, Type)' by 'Constraint' ?
