@@ -19,7 +19,7 @@ case class TypeBool extends Type
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i+1)
+    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i+1) // ça va pas marcher parce que args contient de TypeVars et pas strings
     tp match {
       case TypeNat() => tp
       case TypeBool() => tp
@@ -74,7 +74,9 @@ abstract class Substitution extends (Type => Type) {
   }
 
   def apply(env: List[(String, TypeScheme)]): List[(String, TypeScheme)] =
-    env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) }
+    env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) 
+  //To complete  
+  }
 
   def extend(c: (Type, Type)): Substitution = {
     mappings = c :: mappings
