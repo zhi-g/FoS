@@ -19,7 +19,7 @@ case class TypeBool extends Type
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i++)
+    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i+1)
     tp match {
       case TypeNat() => tp
       case TypeBool() => tp
