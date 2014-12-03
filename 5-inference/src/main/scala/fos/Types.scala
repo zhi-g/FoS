@@ -5,7 +5,7 @@ import scala.collection.immutable.{ Set, ListSet }
 abstract class Type {
   override def toString() = this match {
     case TypeVar(a) => a
-    case TypeFun(a, b) => s"($a->$b)"
+    case TypeFun(a, b) => s"[$a->$b]"
     case _: TypeNat => "Nat"
     case _: TypeBool => "Bool"
   }
@@ -21,6 +21,7 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 
   def instantiate: Type = {
     def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1) 
+    if (args.isEmpty) return tp
     
     tp match {
       case TypeNat() => tp
