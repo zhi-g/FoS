@@ -79,11 +79,9 @@ class TwoPhaseInferencer extends TypeInferencers {
         val r1 = collect(env, v)
         val s = unify(r1.c)
         val T = s(r1.tpe)
-        
-        
-        
-        
-
+        val newEnv = s(env)
+        collect((x, new TypeScheme(findGeneralTypes(for( y <- newEnv) yield y._2.tp, T), T)) :: newEnv,t) 
+   
     }
   }
   /**

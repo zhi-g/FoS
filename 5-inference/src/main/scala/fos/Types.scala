@@ -53,6 +53,14 @@ object Type {
       case _ => freshName(vars, prop + i, i + 1)
     }
   }
+  
+  def getTypeVars(t: Type): List[String]  = {
+    t match {
+      case TypeVar(x) => x::Nil
+      case TypeFun(t1,t2) => getTypeVars(t1) ::: getTypeVars(t2)
+      case _ => Nil
+    }
+  }
 
   /**
    * Alpha-conversion:
@@ -72,6 +80,11 @@ object Type {
       case Abs(name, tpe, t1) => if (name == x || name == y) t else Abs(name, tpe, alpha(t1, x, y))
       case Let(x1, v, t) => if (y == x1) t else Let(x1, alpha(v, x, y), alpha(t, x, y))
     })
+    
+   def findGeneralTypes(env: List[Type], t: Type): List[TypeVar] = {
+    val vars = (for( x<-env) yield getTypeVars(x)).flatten
+    for (x<- getTypeVars(t) if !vars.contains(x)) yield TypeVar(x)
+  }
 
 }
 
