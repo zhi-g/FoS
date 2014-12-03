@@ -20,8 +20,8 @@ case class TypeBool extends Type
 case class TypeScheme(args: List[TypeVar], tp: Type) {
 
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1) // ça va pas marcher parce que args contient de TypeVars et pas strings
-
+    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1) 
+    
     tp match {
       case TypeNat() => tp
       case TypeBool() => tp
@@ -87,7 +87,7 @@ abstract class Substitution extends (Type => Type) {
   var mappings: List[Pair[Type, Type]] = List()
 
   def apply(tp: Type): Type = {
-    //println("  " * indent + "in: " + tp + "   subst: " + this)
+    println("  " * indent + "in: " + tp + "   subst: " + this)
     indent = indent + 1
     val result = tp match {
       case TypeFun(a, b) => TypeFun(apply(a), apply(b))
@@ -95,6 +95,7 @@ abstract class Substitution extends (Type => Type) {
         mappings.foreach { constr =>
           constr._1 match {
             case TypeVar(x) if x == name => constr._2
+            case _ => println (" cons : " + constr._1  )
           }
         }
         tp
@@ -102,7 +103,7 @@ abstract class Substitution extends (Type => Type) {
       case _ => tp
     }
     indent = indent - 1
-    //println("  " * indent + "out: " + result + "   subst: " + this)
+    println("  " * indent + "out: " + result + "   subst: " + this)
     result
   }
   override def toString() = {
