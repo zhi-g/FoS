@@ -18,9 +18,9 @@ case class TypeBool extends Type
 
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
-  
+
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i+1) // ça va pas marcher parce que args contient de TypeVars et pas strings
+    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i + 1) // ça va pas marcher parce que args contient de TypeVars et pas strings
     tp match {
       case TypeNat() => tp
       case TypeBool() => tp
@@ -33,9 +33,41 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 
 object Type {
   // We can use this object as a static utility class in Java
-  
-  
-  
+
+  def freshTypeVar(typeVars: List[TypeScheme], newname: String, i: Int): TypeVar = {
+    typeVars.foreach(
+      x => x.args.foreach(y => y match {
+        case TypeVar(s) if (s == newname) => freshTypeVar(typeVars, newname + i, i + 1)
+      }))
+    TypeVar(newname)
+  }
+
+  def freshName(vars: List[String], prop: String, i: Int): String = {
+    vars.find(x => x == prop) match {
+      case None => prop
+      case _ => freshName(vars, prop + i, i + 1)
+    }
+  }
+
+  /**
+   * Alpha-conversion:
+   *  @param x new name
+   *  @param y old name
+   *
+   */
+  def alpha(t: Term, x: String, y: String): Term = (
+    t match {
+      case _: True | _: False | _: Zero => t
+      case Succ(e) => Succ(alpha(e, x, y))
+      case Pred(e) => Pred(alpha(e, x, y))
+      case IsZero(e) => IsZero(alpha(e, x, y))
+      case If(cond, thn, els) => If(alpha(cond, x, y), alpha(thn, x, y), alpha(els, x, y))
+      case Var(name) => if (name == y) new Var(x) else t
+      case App(t1, t2) => App(alpha(t1, x, y), alpha(t2, x, y))
+      case Abs(name, tpe, t1) => if (name == x || name == y) t else Abs(name, tpe, alpha(t1, x, y))
+      case Let(x1, v, t) => if (y == x1) t else Let(x1, alpha(v, x, y), alpha(t, x, y))
+    })
+
 }
 
 //abstract class Constraint { // (see: Implementation Hints)
@@ -78,12 +110,11 @@ abstract class Substitution extends (Type => Type) {
   } //what's this used for?
 
   def apply(env: List[(String, TypeScheme)]): List[(String, TypeScheme)] =
-    env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) 
-  //To complete  
-  }
+    env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp)))
+    }
 
   def extend(c: (Type, Type)): Substitution = {
-    mappings = c :: mappings // and unify?
+    mappings = c :: mappings
     this
   }
 }

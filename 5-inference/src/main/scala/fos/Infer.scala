@@ -80,7 +80,9 @@ object Infer extends StandardTokenParsers {
     phrase(Term)(tokens) match {
       case Success(trees, _) =>
         try {
+          print ("Plop")
           println("typed: " + Inferencer.typeOf(trees))
+          
         } catch {
           case tperror: Exception => println(tperror.toString)
         }

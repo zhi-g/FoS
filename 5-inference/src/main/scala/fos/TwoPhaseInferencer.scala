@@ -13,70 +13,75 @@ class TwoPhaseInferencer extends TypeInferencers {
    * Type <code>t</code> in <code>env</code> and return its type and a
    *  constraint list.
    */
-  def collect(env: Env, t: Term): TypingResult = t match {
-    case Var(x) =>
-      val t1 = lookup(env, x)
-      if (t1 == null)
-        throw TypeError("Unknown variable " + x)
-      TypingResult(t1.instantiate, noConstraints)
+  def collect(env: Env, t: Term): TypingResult = {
+    println("Collect")
+    t match {
 
-    case _: True => TypingResult(TypeBool(), noConstraints)
+      case Var(x) =>
+        val t1 = lookup(env, x)
+        if (t1 == null)
+          throw TypeError("Unknown variable " + x)
+        TypingResult(t1.instantiate, noConstraints)
 
-    case _: False => TypingResult(TypeBool(), noConstraints)
+      case _: True => TypingResult(TypeBool(), noConstraints)
 
-    case _: Zero => TypingResult(TypeNat(), noConstraints)
+      case _: False => TypingResult(TypeBool(), noConstraints)
 
-    case Succ(x) =>
-      val r = collect(env, x)
-      if (r.tpe == null)
-        throw TypeError(s"Cannot typecheck $x")
-      TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
+      case _: Zero => TypingResult(TypeNat(), noConstraints)
 
-    case Pred(x) =>
-      val r = collect(env, x)
-      if (r.tpe == null)
-        throw TypeError(s"Cannot typecheck $x")
-      TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
+      case Succ(x) =>
+        val r = collect(env, x)
+        if (r.tpe == null)
+          throw TypeError(s"Cannot typecheck $x")
+        TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
 
-    case IsZero(x) =>
-      val r = collect(env, x)
-      if (r.tpe == null)
-        throw TypeError(s"Cannot typecheck $x")
-      TypingResult(TypeBool(), (new Constraint(r.tpe, TypeBool()) :: r.c))
+      case Pred(x) =>
+        val r = collect(env, x)
+        if (r.tpe == null)
+          throw TypeError(s"Cannot typecheck $x")
+        TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
 
-    case If(cond, t1, t2) =>
-      val r1 = collect(env, cond)
-      val r2 = collect(env, t1)
-      val r3 = collect(env, t2)
-      if (r1.tpe == null || r2.tpe == null || r3.tpe == null)
-        throw TypeError(s"Cannot typecheck $t")
-      val c1 = new Constraint(r1.tpe, TypeBool())
-      val c2 = new Constraint(r2.tpe, r3.tpe)
-      TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
+      case IsZero(x) =>
+        val r = collect(env, x)
+        if (r.tpe == null)
+          throw TypeError(s"Cannot typecheck $x")
+        TypingResult(TypeBool(), (new Constraint(r.tpe, TypeBool()) :: r.c))
 
-    case Abs(v, tp, t) =>
-      val r1 = tp match {
-        case EmptyType => collect((v, TypeScheme(List(), TypeVar(freshName(env, v, 1)))) :: env, t) //Empty list not sure
-        case _ => collect((v, TypeScheme(List(), toType(tp))) :: env, t)
-      }
-      if (r1.tpe == null)
-        throw TypeError(s"Cannot typecheck $t")
-      TypingResult(TypeFun((lookup(env, v)).tp, r1.tpe), r1.c)
+      case If(cond, t1, t2) =>
+        val r1 = collect(env, cond)
+        val r2 = collect(env, t1)
+        val r3 = collect(env, t2)
+        if (r1.tpe == null || r2.tpe == null || r3.tpe == null)
+          throw TypeError(s"Cannot typecheck $t")
+        val c1 = new Constraint(r1.tpe, TypeBool())
+        val c2 = new Constraint(r2.tpe, r3.tpe)
+        TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
 
-    case App(t1, t2) =>
-      val r1 = collect(env, t1)
-      val r2 = collect(env, t2)
-      if (r1.tpe == null || r2.tpe == null)
-        throw TypeError(s"Cannot typecheck $t")
-      val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
-      val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, x))
-      TypingResult(x, c1 :: r1.c ::: r2.c)
-    
+      case Abs(v, tp, t) =>
+        val r1 = tp match {
+          case EmptyType => collect((v, TypeScheme(List(), freshTypeVar(for (x <- env) yield x._2, v, 0))) :: env, t) //Empty list not sure
+          case _ => collect((v, TypeScheme(List(), toType(tp))) :: env, t)
+        }
+        if (r1.tpe == null)
+          throw TypeError(s"Cannot typecheck $t")
+        TypingResult(TypeFun((lookup(env, v)).tp, r1.tpe), r1.c)
+
+      case App(t1, t2) =>
+        val r1 = collect(env, t1)
+        val r2 = collect(env, t2)
+        if (r1.tpe == null || r2.tpe == null)
+          throw TypeError(s"Cannot typecheck $t")
+        val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
+        val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, x))
+        TypingResult(x, c1 :: r1.c ::: r2.c)
+
+    }
   }
-
   /**
    */
-  def unify(c: List[Constraint]): Substitution =
+  def unify(c: List[Constraint]): Substitution = {
+    
+	  println("Unify")
     if (c.isEmpty) emptySubst
     else c.head match {
       case (TypeVar(a), TypeVar(b)) if (a == b) =>
@@ -89,7 +94,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         unify((arg1, arg2) :: (res1, res2) :: c.tail)
       case (t1, t2) =>
         throw TypeError("Could not unify: " + t1 + " with " + t2)
-    }
+    }}
 
   def includes(tp1: Type, name: String): Boolean = {
     tp1 match {
@@ -112,13 +117,6 @@ class TwoPhaseInferencer extends TypeInferencers {
       case TypeFun(a, b) => TypeFun(substSub(tpeVar, tpe1, a), substSub(tpeVar, tpe2, b))
       case TypeVar(x) if x == tpeVar => tpe1
       case _ => tpe2
-    }
-  }
-
-  def freshName(env: Env, prop: String, i: Int): String = {
-    lookup(env, prop) match {
-      case null => prop
-      case _ => freshName(env, prop + i, i + 1)
     }
   }
 
