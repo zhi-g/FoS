@@ -117,13 +117,11 @@ abstract class Substitution extends (Type => Type) {
     val result = tp match {
       case TypeFun(a, b) => TypeFun(apply(a), apply(b))
       case TypeVar(name) => {
-        mappings.foreach { constr =>
+        for (constr <- mappings)
           constr._1 match {
-            case TypeVar(x) if x == name => return constr._2
-            case _ => 
-
+            case TypeVar(x) if x == name => return apply(constr._2)
+            case _ =>
           }
-        }
         tp
       }
       case _ => tp
