@@ -21,27 +21,27 @@ class TwoPhaseInferencer extends TypeInferencers {
           throw TypeError("Unknown variable " + x)
         TypingResult(t1.instantiate, noConstraints)
 
-      case _: True => TypingResult(TypeBool(), noConstraints)
-      case _: False => TypingResult(TypeBool(), noConstraints)
-      case _: Zero => TypingResult(TypeNat(), noConstraints)
+      case _: True => TypingResult(TypeBool, noConstraints)
+      case _: False => TypingResult(TypeBool, noConstraints)
+      case _: Zero => TypingResult(TypeNat, noConstraints)
 
       case Succ(x) =>
         val r = collect(env, x)
         if (r.tpe == null)
           throw TypeError(s"Cannot typecheck $x")
-        TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
+        TypingResult(TypeNat, (new Constraint(r.tpe, TypeNat) :: r.c))
 
       case Pred(x) =>
         val r = collect(env, x)
         if (r.tpe == null)
           throw TypeError(s"Cannot typecheck $x")
-        TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
+        TypingResult(TypeNat, (new Constraint(r.tpe, TypeNat) :: r.c))
 
       case IsZero(x) =>
         val r = collect(env, x)
         if (r.tpe == null)
           throw TypeError(s"Cannot typecheck $x")
-        TypingResult(TypeBool(), (new Constraint(r.tpe, TypeNat()) :: r.c))
+        TypingResult(TypeBool, (new Constraint(r.tpe, TypeNat) :: r.c))
 
       case If(cond, t1, t2) =>
         val r1 = collect(env, cond)
@@ -50,7 +50,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         if (r1.tpe == null || r2.tpe == null || r3.tpe == null)
           throw TypeError(s"Cannot typecheck $t")
         //check overlapping type variables
-        val c1 = new Constraint(r1.tpe, TypeBool())
+        val c1 = new Constraint(r1.tpe, TypeBool)
         val c2 = new Constraint(r2.tpe, r3.tpe)
         TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
 
@@ -90,8 +90,8 @@ class TwoPhaseInferencer extends TypeInferencers {
     println("Unify: " + c)
     if (c.isEmpty) emptySubst
     else c.head match {
-      case (TypeNat(), TypeNat()) => unify(c.tail)
-      case (TypeBool(), TypeBool()) => unify(c.tail)
+      case (TypeNat, TypeNat) => unify(c.tail)
+      case (TypeBool, TypeBool) => unify(c.tail)
       case (TypeVar(a), TypeVar(b)) if (a == b) =>
         unify(c.tail)
       case (TypeVar(x), s) if (!includes(s, x)) =>

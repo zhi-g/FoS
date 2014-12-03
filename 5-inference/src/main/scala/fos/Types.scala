@@ -6,15 +6,15 @@ abstract class Type {
   override def toString() = this match {
     case TypeVar(a) => a
     case TypeFun(a, b) => s"[$a->$b]"
-    case _: TypeNat => "Nat"
-    case _: TypeBool => "Bool"
+    case TypeNat => "Nat"
+    case TypeBool => "Bool"
   }
 }
 
 case class TypeVar(name: String) extends Type
 case class TypeFun(tp1: Type, tp2: Type) extends Type
-case class TypeNat extends Type
-case class TypeBool extends Type
+object TypeNat extends Type
+object TypeBool extends Type
 
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
