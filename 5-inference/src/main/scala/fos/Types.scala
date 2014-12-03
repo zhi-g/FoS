@@ -20,14 +20,18 @@ case class TypeBool extends Type
 case class TypeScheme(args: List[TypeVar], tp: Type) {
 
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i + 1) // ça va pas marcher parce que args contient de TypeVars et pas strings
+    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1) // ça va pas marcher parce que args contient de TypeVars et pas strings
+
     tp match {
       case TypeNat() => tp
       case TypeBool() => tp
-      case TypeVar(a) => TypeVar(newName(a, 1))
+      case TypeVar(a) =>
+        TypeVar(newName(a, 1))
       case TypeFun(tp1, tp2) => TypeFun(TypeScheme(args, tp1).instantiate, TypeScheme(args, tp2).instantiate)
     }
+
   }
+
   override def toString() = args.mkString("[", ", ", "].") + tp
 }
 

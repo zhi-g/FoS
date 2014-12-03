@@ -21,6 +21,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         if (t1 == null)
           throw TypeError("Unknown variable " + x)
         TypingResult(t1.instantiate, noConstraints)
+
       case _: True => TypingResult(TypeBool(), noConstraints)
       case _: False => TypingResult(TypeBool(), noConstraints)
       case _: Zero => TypingResult(TypeNat(), noConstraints)
@@ -54,14 +55,17 @@ class TwoPhaseInferencer extends TypeInferencers {
         val c2 = new Constraint(r2.tpe, r3.tpe)
         TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
 
-      case Abs(v, tp, t) =>
-        val r1 = tp match {
-          case EmptyType => collect((v, TypeScheme(List(), freshTypeVar(for (x <- env) yield x._2, v, 0))) :: env, t) //Empty list not sure
-          case _ => collect((v, TypeScheme(List(), toType(tp))) :: env, t)
+      case Abs(v, tp, t1) =>
+        println("Collect Abs : " + t1)
+        val tp1 = tp match {
+          case EmptyType => freshTypeVar(for (x <- env) yield x._2, v, 0) //Empty list not sure
+          case _ => toType(tp)
         }
+
+        val r1 = collect((v, TypeScheme(List(), tp1)) :: env, t1)
         if (r1.tpe == null)
           throw TypeError(s"Cannot typecheck $t")
-        TypingResult(TypeFun((lookup(env, v)).tp, r1.tpe), r1.c)
+        TypingResult(TypeFun(tp1, r1.tpe), r1.c)
 
       case App(t1, t2) =>
         val r1 = collect(env, t1)
