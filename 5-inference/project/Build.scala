@@ -10,7 +10,11 @@ object ExerciseBuild extends Build {
     name         := "fos-project5",
     version      := "1.0",
     scalaVersion := "2.10.4",
-    scalacOptions ++= List("-unchecked", "-deprecation"))
+    scalacOptions ++= List("-unchecked", "-deprecation"),
+    libraryDependencies ++= List(
+	"org.scalatest" % "scalatest_2.10" % "2.1.3" % "test",
+	"org.scalacheck" %% "scalacheck" % "1.12.0" % "test")
+)
 
   val filesToInclude = Seq("Infer", "Terms", "TwoPhaseInferencer", "TypeInferencers",  "Types").map("src/main/scala/fos/" + _ + ".scala")
 
