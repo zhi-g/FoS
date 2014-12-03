@@ -19,31 +19,31 @@ class TwoPhaseInferencer extends TypeInferencers {
       if (t1 == null)
         throw TypeError("Unknown variable " + x)
       TypingResult(t1.instantiate, noConstraints)
-      
+
     case _: True => TypingResult(TypeBool(), noConstraints)
-    
+
     case _: False => TypingResult(TypeBool(), noConstraints)
-    
+
     case _: Zero => TypingResult(TypeNat(), noConstraints)
-    
-    case Succ(x) => 
+
+    case Succ(x) =>
       val r = collect(env, x)
       if (r.tpe == null)
         throw TypeError(s"Cannot typecheck $x")
       TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
-      
+
     case Pred(x) =>
       val r = collect(env, x)
       if (r.tpe == null)
         throw TypeError(s"Cannot typecheck $x")
       TypingResult(TypeNat(), (new Constraint(r.tpe, TypeNat()) :: r.c))
-      
+
     case IsZero(x) =>
       val r = collect(env, x)
       if (r.tpe == null)
         throw TypeError(s"Cannot typecheck $x")
       TypingResult(TypeBool(), (new Constraint(r.tpe, TypeBool()) :: r.c))
-      
+
     case If(cond, t1, t2) =>
       val r1 = collect(env, cond)
       val r2 = collect(env, t1)
@@ -52,25 +52,24 @@ class TwoPhaseInferencer extends TypeInferencers {
         throw TypeError(s"Cannot typecheck $t")
       val c1 = new Constraint(r1.tpe, TypeBool())
       val c2 = new Constraint(r2.tpe, r3.tpe)
-      TypingResult(r2.tpe,  ( c1 :: c2 :: Nil ) ::: r1.c ::: r2.c ::: r3.c )
-      
-    case Abs(v, tp, t) => // Note: this might be wrong, as the instructions seem to suggest we should introduce a fresh variable. Yes we need type for the Abs: T1->T2
-     val r1 = tp match {
+      TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
+
+    case Abs(v, tp, t) =>
+      val r1 = tp match {
         case EmptyType => collect((v, TypeScheme(List(), TypeVar(freshName(env, v, 1)))) :: env, t) //Empty list not sure
-        case _ =>  collect((v, TypeScheme(List(), tp.toType)) :: env, t)
+        case _ => collect((v, TypeScheme(List(), tp.toType)) :: env, t)
       }
-       //is v already in the env? I don't think so! IMO we need to add v and fresh variable for the type of v to the environement
       if (r1.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
       TypingResult(TypeFun((lookup(env, v)).tp, r1.tpe), r1.c)
-      
+
     case App(t1, t2) =>
       val r1 = collect(env, t1)
       val r2 = collect(env, t2)
       if (r1.tpe == null || r2.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
       val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
-      val c1 = new Constraint(r1.tpe,  TypeFun(r2.tpe, x))
+      val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, x))
       TypingResult(x, c1 :: r1.c ::: r2.c)
   }
 
@@ -114,11 +113,11 @@ class TwoPhaseInferencer extends TypeInferencers {
       case _ => tpe2
     }
   }
-  
-  def freshName(env: Env, prop: String, i:Int): String = {
+
+  def freshName(env: Env, prop: String, i: Int): String = {
     lookup(env, prop) match {
-      case null =>  prop
-      case _ => freshName(env, prop + i, i+1)
+      case null => prop
+      case _ => freshName(env, prop + i, i + 1)
     }
   }
 
