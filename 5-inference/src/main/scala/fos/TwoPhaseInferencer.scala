@@ -57,7 +57,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       case Abs(v, tp, t1) =>
         println("Collect Abs : " + t1)
         val tp1 = tp match {
-          case EmptyType => freshTypeVar(for (x <- env) yield x._2, "X", 0)
+          case EmptyType => TypeVar(getFreshName("X"))
           case _ => toType(tp)
         }
 
@@ -71,7 +71,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         val r2 = collect(env, t2)
         if (r1.tpe == null || r2.tpe == null)
           throw TypeError(s"Cannot typecheck $t")
-        val tp2 = freshTypeVar(for (x <- env) yield x._2, "X", 0)
+        val tp2 = TypeVar(getFreshName("X"))
         val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, tp2))
         TypingResult(tp2, c1 :: r1.c ::: r2.c)
 

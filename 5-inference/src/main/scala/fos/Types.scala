@@ -56,21 +56,6 @@ object Type {
 
   var freshVariables: List[String] = List()
   
-  def freshTypeVar(typeVars: List[TypeScheme], newname: String, i: Int): TypeVar = {
-    typeVars.foreach(
-      x => x.args.foreach(_ match {
-        case TypeVar(s) if (s == newname) => freshTypeVar(typeVars, newname + i, i + 1)
-      }))
-    TypeVar(newname.toUpperCase())
-  }
-
-//  def freshName(vars: List[String], prop: String, i: Int): String = {
-//    vars.find(x => x == prop) match {
-//      case None => prop
-//      case _ => freshName(vars, prop + i, i + 1)
-//    }
-//  }
-  
   def getFreshName(oldName: String): String = {
     def getFreshNameAcc(oldName: String, i: Int): String = {
       if (freshVariables.contains(oldName + i)) getFreshNameAcc(oldName, i+1)
@@ -135,7 +120,7 @@ abstract class Substitution extends (Type => Type) {
         mappings.foreach { constr =>
           constr._1 match {
             case TypeVar(x) if x == name => return constr._2
-            //            case _ => 
+            case _ => 
 
           }
         }
