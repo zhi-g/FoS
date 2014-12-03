@@ -30,9 +30,9 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 
     def generalise(tpe: Type, oldName: String, newName: String): Type = {
       tpe match {
-        case TypeVar(a) if a == oldName => return TypeVar(newName)
-        case TypeFun(tp1, tp2) => return TypeFun(generalise(tp1, oldName, newName), generalise(tp2, oldName, newName))
-//        case _ => Nil
+        case TypeVar(a) if a == oldName => TypeVar(newName)
+        case TypeFun(tp1, tp2) => TypeFun(generalise(tp1, oldName, newName), generalise(tp2, oldName, newName))
+        case _ => tpe
       }
     }
 
