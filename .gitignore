@@ -24,3 +24,6 @@ scalatest*
 # VIM specific
 *.swp
 *.un~
+
+# Gedit temp files
+*~
