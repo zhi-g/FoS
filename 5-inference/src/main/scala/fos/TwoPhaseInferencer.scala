@@ -16,17 +16,13 @@ class TwoPhaseInferencer extends TypeInferencers {
   def collect(env: Env, t: Term): TypingResult = {
     println("Collect")
     t match {
-
       case Var(x) =>
         val t1 = lookup(env, x)
         if (t1 == null)
           throw TypeError("Unknown variable " + x)
         TypingResult(t1.instantiate, noConstraints)
-
       case _: True => TypingResult(TypeBool(), noConstraints)
-
       case _: False => TypingResult(TypeBool(), noConstraints)
-
       case _: Zero => TypingResult(TypeNat(), noConstraints)
 
       case Succ(x) =>
@@ -45,7 +41,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         val r = collect(env, x)
         if (r.tpe == null)
           throw TypeError(s"Cannot typecheck $x")
-        TypingResult(TypeBool(), (new Constraint(r.tpe, TypeBool()) :: r.c))
+        TypingResult(TypeBool(), (new Constraint(r.tpe, TypeNat()) :: r.c))
 
       case If(cond, t1, t2) =>
         val r1 = collect(env, cond)
@@ -53,6 +49,7 @@ class TwoPhaseInferencer extends TypeInferencers {
         val r3 = collect(env, t2)
         if (r1.tpe == null || r2.tpe == null || r3.tpe == null)
           throw TypeError(s"Cannot typecheck $t")
+        //check overlapping type variables
         val c1 = new Constraint(r1.tpe, TypeBool())
         val c2 = new Constraint(r2.tpe, r3.tpe)
         TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
@@ -80,8 +77,8 @@ class TwoPhaseInferencer extends TypeInferencers {
   /**
    */
   def unify(c: List[Constraint]): Substitution = {
-    
-	  println("Unify")
+
+    println("Unify")
     if (c.isEmpty) emptySubst
     else c.head match {
       case (TypeVar(a), TypeVar(b)) if (a == b) =>
@@ -94,7 +91,8 @@ class TwoPhaseInferencer extends TypeInferencers {
         unify((arg1, arg2) :: (res1, res2) :: c.tail)
       case (t1, t2) =>
         throw TypeError("Could not unify: " + t1 + " with " + t2)
-    }}
+    }
+  }
 
   def includes(tp1: Type, name: String): Boolean = {
     tp1 match {
