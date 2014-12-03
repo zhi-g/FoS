@@ -94,8 +94,8 @@ abstract class Substitution extends (Type => Type) {
       case TypeVar(name) => {
         mappings.foreach { constr =>
           constr._1 match {
-            case TypeVar(x) if x == name => constr._2
-            case _ => println (" cons : " + constr._1  )
+            case TypeVar(x) if x == name => return constr._2
+            case _ =>
           }
         }
         tp
