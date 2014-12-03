@@ -20,16 +20,31 @@ case class TypeBool extends Type
 case class TypeScheme(args: List[TypeVar], tp: Type) {
 
   def instantiate: Type = {
-    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1) 
-    if (args.isEmpty) return tp
-    
-    tp match {
-      case TypeNat() => tp
-      case TypeBool() => tp
-      case TypeVar(a) =>
-        TypeVar(newName(a, 1))
-      case TypeFun(tp1, tp2) => TypeFun(TypeScheme(args, tp1).instantiate, TypeScheme(args, tp2).instantiate)
+  
+//    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1)
+
+    def generaliseAcc(tpe: Type, args: List[TypeVar]): Type = {
+      if (args.isEmpty) return tpe
+      else generaliseAcc(generalise(tpe, args.head.name, Type.getFreshName(args.head.name)), args.tail)
     }
+
+    def generalise(tpe: Type, oldName: String, newName: String): Type = {
+      tpe match {
+        case TypeVar(a) if a == oldName => return TypeVar(newName)
+        case TypeFun(tp1, tp2) => return TypeFun(generalise(tp1, oldName, newName), generalise(tp2, oldName, newName))
+//        case _ => Nil
+      }
+    }
+
+    if (args.isEmpty) tp // return tp
+    else generaliseAcc(tp, args)
+    //    tp match {
+    //      case TypeNat() => tp
+    //      case TypeBool() => tp
+    //      case TypeVar(a) =>
+    //        TypeVar(newName(a, 1))
+    //      case TypeFun(tp1, tp2) => TypeFun(TypeScheme(args, tp1).instantiate, TypeScheme(args, tp2).instantiate)
+    //    }
 
   }
 
@@ -39,19 +54,30 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 object Type {
   // We can use this object as a static utility class in Java
 
+  var freshVariables: List[String] = List()
+  
   def freshTypeVar(typeVars: List[TypeScheme], newname: String, i: Int): TypeVar = {
     typeVars.foreach(
-      x => x.args.foreach(y => y match {
+      x => x.args.foreach(_ match {
         case TypeVar(s) if (s == newname) => freshTypeVar(typeVars, newname + i, i + 1)
       }))
-    TypeVar(newname)
+    TypeVar(newname.toUpperCase())
   }
 
-  def freshName(vars: List[String], prop: String, i: Int): String = {
-    vars.find(x => x == prop) match {
-      case None => prop
-      case _ => freshName(vars, prop + i, i + 1)
+//  def freshName(vars: List[String], prop: String, i: Int): String = {
+//    vars.find(x => x == prop) match {
+//      case None => prop
+//      case _ => freshName(vars, prop + i, i + 1)
+//    }
+//  }
+  
+  def getFreshName(oldName: String): String = {
+    def getFreshNameAcc(oldName: String, i: Int): String = {
+      if (freshVariables.contains(oldName + i)) getFreshNameAcc(oldName, i+1)
+      else (oldName + i)
     }
+    freshVariables = getFreshNameAcc(oldName, 1) :: freshVariables
+    freshVariables.head
   }
 
   /**
@@ -96,7 +122,8 @@ abstract class Substitution extends (Type => Type) {
         mappings.foreach { constr =>
           constr._1 match {
             case TypeVar(x) if x == name => return constr._2
-            case _ =>
+            //            case _ => 
+
           }
         }
         tp
