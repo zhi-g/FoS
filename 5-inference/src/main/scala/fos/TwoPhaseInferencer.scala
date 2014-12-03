@@ -57,7 +57,7 @@ class TwoPhaseInferencer extends TypeInferencers {
     case Abs(v, tp, t) =>
       val r1 = tp match {
         case EmptyType => collect((v, TypeScheme(List(), TypeVar(freshName(env, v, 1)))) :: env, t) //Empty list not sure
-        case _ => collect((v, TypeScheme(List(), tp.toType)) :: env, t)
+        case _ => collect((v, TypeScheme(List(), toType(tp))) :: env, t)
       }
       if (r1.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
@@ -71,6 +71,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
       val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, x))
       TypingResult(x, c1 :: r1.c ::: r2.c)
+    
   }
 
   /**

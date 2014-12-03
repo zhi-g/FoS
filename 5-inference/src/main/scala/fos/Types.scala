@@ -34,7 +34,8 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 object Type {
   // We can use this object as a static utility class in Java
   
- 
+  
+  
 }
 
 //abstract class Constraint { // (see: Implementation Hints)
