@@ -54,8 +54,12 @@ class TwoPhaseInferencer extends TypeInferencers {
       val c2 = new Constraint(r2.tpe, r3.tpe)
       TypingResult(r2.tpe,  ( c1 :: c2 :: Nil ) ::: r1.c ::: r2.c ::: r3.c )
       
-    case Abs(v, tp, t) => // Note: this might be wrong, as the instructions seem to suggest we should introduce a fresh variable. Yes we need type for the Abs: T1->T2  
-      val r1 = collect((v, lookup(env, v)) :: env, t) //is v already in the env? I don't think so! IMO we need to add v and fresh variable for the type of v to the environement
+    case Abs(v, tp, t) => // Note: this might be wrong, as the instructions seem to suggest we should introduce a fresh variable. Yes we need type for the Abs: T1->T2
+     val r1 = tp match {
+        case EmptyType => collect((v, TypeScheme(List(), TypeVar(freshName(env, v, 1)))) :: env, t) //Empty list not sure
+        case _ =>  collect((v, TypeScheme(List(), tp.toType)) :: env, t)
+      }
+       //is v already in the env? I don't think so! IMO we need to add v and fresh variable for the type of v to the environement
       if (r1.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
       TypingResult(TypeFun((lookup(env, v)).tp, r1.tpe), r1.c)
@@ -65,7 +69,6 @@ class TwoPhaseInferencer extends TypeInferencers {
       val r2 = collect(env, t2)
       if (r1.tpe == null || r2.tpe == null)
         throw TypeError(s"Cannot typecheck $t")
-      //I don't get it
       val x = (TypeScheme(List(), TypeVar("x"))).instantiate // We should not have an empty List here !!
       val c1 = new Constraint(r1.tpe,  TypeFun(r2.tpe, x))
       TypingResult(x, c1 :: r1.c ::: r2.c)
@@ -109,6 +112,13 @@ class TwoPhaseInferencer extends TypeInferencers {
       case TypeFun(a, b) => TypeFun(substSub(tpeVar, tpe1, a), substSub(tpeVar, tpe2, b))
       case TypeVar(x) if x == tpeVar => tpe1
       case _ => tpe2
+    }
+  }
+  
+  def freshName(env: Env, prop: String, i:Int): String = {
+    lookup(env, prop) match {
+      case null =>  prop
+      case _ => freshName(env, prop + i, i+1)
     }
   }
 

@@ -18,6 +18,7 @@ case class TypeBool extends Type
 
 /** Type Schemes are not types. */
 case class TypeScheme(args: List[TypeVar], tp: Type) {
+  
   def instantiate: Type = {
     def newName(oldName: String, i: Int): String = if (args.contains(oldName + i.toString)) oldName + i else newName(oldName, i+1) // ça va pas marcher parce que args contient de TypeVars et pas strings
     tp match {
@@ -31,7 +32,9 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 }
 
 object Type {
-  //   ... To complete ...   
+  // We can use this object as a static utility class in Java
+  
+ 
 }
 
 //abstract class Constraint { // (see: Implementation Hints)
@@ -71,7 +74,7 @@ abstract class Substitution extends (Type => Type) {
 
   def apply(p: (Type, Type)): (Type, Type) = p match { // Should we replace '(Type, Type)' by 'Constraint' ?
     case Pair(t1, t2) => (this(t1), this(t2))
-  }
+  } //what's this used for?
 
   def apply(env: List[(String, TypeScheme)]): List[(String, TypeScheme)] =
     env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp))) 
@@ -79,7 +82,7 @@ abstract class Substitution extends (Type => Type) {
   }
 
   def extend(c: (Type, Type)): Substitution = {
-    mappings = c :: mappings
+    mappings = c :: mappings // and unify?
     this
   }
 }

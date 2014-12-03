@@ -52,7 +52,15 @@ case class Let(x: String, v: Term, t: Term) extends Term {
 }
 
 /** Abstract Syntax Trees for types. */
-abstract class TypeTree extends Term
+abstract class TypeTree extends Term {
+  def toType(): Type = {
+    this match {
+      case BoolType => TypeBool()
+      case NatType => TypeNat()
+      case FunType(t1,t2) => TypeFun(t1.toType, t2.toType)
+    }
+  }
+}
 
 case object BoolType extends TypeTree {
   override def toString() = "Bool"
