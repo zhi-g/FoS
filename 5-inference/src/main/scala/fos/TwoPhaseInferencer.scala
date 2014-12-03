@@ -14,7 +14,6 @@ class TwoPhaseInferencer extends TypeInferencers {
    *  constraint list.
    */
   def collect(env: Env, t: Term): TypingResult = {
-    println("Collect")
     t match {
       case Var(x) =>
         val t1 = lookup(env, x)
@@ -58,7 +57,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       case Abs(v, tp, t1) =>
         println("Collect Abs : " + t1)
         val tp1 = tp match {
-          case EmptyType => freshTypeVar(for (x <- env) yield x._2, "X", 0) 
+          case EmptyType => freshTypeVar(for (x <- env) yield x._2, "X", 0)
           case _ => toType(tp)
         }
 
@@ -73,15 +72,24 @@ class TwoPhaseInferencer extends TypeInferencers {
         if (r1.tpe == null || r2.tpe == null)
           throw TypeError(s"Cannot typecheck $t")
         val tp2 = freshTypeVar(for (x <- env) yield x._2, "X", 0)
-        val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, tp2 ))
-       TypingResult(tp2, c1::r1.c ::: r2.c)
-    	
+        val c1 = new Constraint(r1.tpe, TypeFun(r2.tpe, tp2))
+        TypingResult(tp2, c1 :: r1.c ::: r2.c)
+
+      case Let(x, v, t) =>
+        val r1 = collect(env, v)
+        val s = unify(r1.c)
+        val T = s(r1.tpe)
+        
+        
+        
+        
+
     }
   }
   /**
    */
   def unify(c: List[Constraint]): Substitution = {
-    println("Unify: "+ c)
+    println("Unify: " + c)
     if (c.isEmpty) emptySubst
     else c.head match {
       case (TypeNat(), TypeNat()) => unify(c.tail)
