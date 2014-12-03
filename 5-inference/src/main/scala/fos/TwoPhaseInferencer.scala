@@ -81,6 +81,8 @@ class TwoPhaseInferencer extends TypeInferencers {
     println("Unify")
     if (c.isEmpty) emptySubst
     else c.head match {
+      case (TypeNat(), TypeNat()) => unify(c.tail)
+      case (TypeBool(), TypeBool()) => unify(c.tail)
       case (TypeVar(a), TypeVar(b)) if (a == b) =>
         unify(c.tail)
       case (TypeVar(x), s) if (!includes(s, x)) =>
