@@ -5,7 +5,7 @@ import scala.collection.immutable.{ Set, ListSet }
 abstract class Type {
   override def toString() = this match {
     case TypeVar(a) => a
-    case TypeFun(a, b) => s"[$a->$b]"
+    case TypeFun(a, b) => s"($a->$b)"
     case TypeNat => "Nat"
     case TypeBool => "Bool"
   }
@@ -20,9 +20,6 @@ object TypeBool extends Type
 case class TypeScheme(args: List[TypeVar], tp: Type) {
 
   def instantiate: Type = {
-  
-//    def newName(oldName: String, i: Int): String = if (!args.contains(oldName + i)) oldName + i else newName(oldName, i + 1)
-
     def generaliseAcc(tpe: Type, args: List[TypeVar]): Type = {
       if (args.isEmpty) return tpe
       else generaliseAcc(generalise(tpe, args.head.name, Type.getFreshName(args.head.name)), args.tail)
@@ -38,14 +35,6 @@ case class TypeScheme(args: List[TypeVar], tp: Type) {
 
     if (args.isEmpty) tp // return tp
     else generaliseAcc(tp, args)
-    //    tp match {
-    //      case TypeNat() => tp
-    //      case TypeBool() => tp
-    //      case TypeVar(a) =>
-    //        TypeVar(newName(a, 1))
-    //      case TypeFun(tp1, tp2) => TypeFun(TypeScheme(args, tp1).instantiate, TypeScheme(args, tp2).instantiate)
-    //    }
-
   }
 
   override def toString() = args.mkString("[", ", ", "].") + tp
@@ -96,19 +85,11 @@ object Type {
     val vars = (for( x<-env) yield getTypeVars(x)).flatten
     for (x<- getTypeVars(t) if !vars.contains(x)) yield TypeVar(x)
   }
-
 }
-
-//abstract class Constraint { // (see: Implementation Hints)
-//  val tp: Pair[Type, Type]
-//  val pos: Int
-//}
 
 abstract class Substitution extends (Type => Type) {
 
   var indent = 0
-
-  // Check if there is a way to do this without using a var
   var mappings: List[Pair[Type, Type]] = List()
 
   def apply(tp: Type): Type = {
@@ -134,9 +115,9 @@ abstract class Substitution extends (Type => Type) {
     (for (constr <- mappings) yield constr._1 + "->" + constr._2).mkString("[", ",", "]")
   }
 
-  def apply(p: (Type, Type)): (Type, Type) = p match { // Should we replace '(Type, Type)' by 'Constraint' ?
+  def apply(p: (Type, Type)): (Type, Type) = p match {
     case Pair(t1, t2) => (this(t1), this(t2))
-  } //what's this used for?
+  }
 
   def apply(env: List[(String, TypeScheme)]): List[(String, TypeScheme)] =
     env map { (pair) => (pair._1, TypeScheme(pair._2.args, apply(pair._2.tp)))

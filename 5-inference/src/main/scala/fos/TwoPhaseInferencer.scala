@@ -55,7 +55,6 @@ class TwoPhaseInferencer extends TypeInferencers {
         TypingResult(r2.tpe, (c1 :: c2 :: Nil) ::: r1.c ::: r2.c ::: r3.c)
 
       case Abs(v, tp, t1) =>
-        println("Collect Abs : " + t1)
         val tp1 = tp match {
           case EmptyType => TypeVar(getFreshName("X"))
           case _ => toType(tp)
@@ -87,7 +86,6 @@ class TwoPhaseInferencer extends TypeInferencers {
   /**
    */
   def unify(c: List[Constraint]): Substitution = {
-    println("Unify: " + c)
     if (c.isEmpty) emptySubst
     else c.head match {
       case (TypeNat, TypeNat) => unify(c.tail)
@@ -95,7 +93,7 @@ class TwoPhaseInferencer extends TypeInferencers {
       case (TypeVar(a), TypeVar(b)) if (a == b) =>
         unify(c.tail)
       case (TypeVar(x), s) if (!includes(s, x)) =>
-        unify(subst(x, s, c.tail)).extend(new Constraint(TypeVar(x), s)) //Should substitute [x->s]c.tail, so the new constraint is visible in the remaining constraints of c
+        unify(subst(x, s, c.tail)).extend(new Constraint(TypeVar(x), s))
       case (s, TypeVar(x)) if (!includes(s, x)) =>
         unify(subst(x, s, c.tail)).extend(new Constraint(TypeVar(x), s))
       case (TypeFun(arg1, res1), TypeFun(arg2, res2)) =>
@@ -120,7 +118,6 @@ class TwoPhaseInferencer extends TypeInferencers {
     }
   }
 
-  // [tpeVar -> tpe1] tpe2
   def substSub(tpeVar: String, tpe1: Type, tpe2: Type): Type = {
     tpe2 match {
       case TypeFun(a, b) => TypeFun(substSub(tpeVar, tpe1, a), substSub(tpeVar, tpe2, b))
