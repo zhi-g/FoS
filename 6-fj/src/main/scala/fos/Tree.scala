@@ -21,8 +21,10 @@ case class MethodArgsLengthException(msg: String) extends MethodException(msg)
 case class MethodUndefinedException(msg: String) extends MethodException(msg)
 
 abstract class FieldException(msg: String) extends TreeException(msg)
-case class FieldAlreadyDefined(msg: String) extends FieldException(msg)
-case class FieldAccessUndefined(msg: String) extends FieldException(msg)
+case class FieldAlreadyDefinedException(msg: String) extends FieldException(msg)
+case class FieldAccessedUndefinedException(msg: String) extends FieldException(msg)
+case class NonexistingFieldException(msg: String) extends FieldException(msg)
+case class FieldTypeException(msg: String) extends FieldException(msg)
 
 abstract class VarException(msg: String) extends TreeException(msg)
 case class VarUndefinedException(msg: String) extends VarException(msg)

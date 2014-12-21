@@ -15,11 +15,19 @@ object Type {
   def typeOf(tree: Tree, ctx: Context): Class = {
     //   ... To complete ...
     tree match {
-      case Program(cls, expr) => Nil
+      case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => Nil
       case FieldDef(tpe, name) => Nil
       case CtrDef(name, args, supers, body) => Nil
-      case Assign(obj, field, rhs) => Nil
+      case Assign(obj, field, rhs) => {
+        try {
+          val fieldTpe = getClassDef(obj).findField(field).get.tpe
+          val rhsTpe = typeOf(rhs, ctx)
+          if (fieldTpe == rhsTpe) fieldTpe else throw new FieldTypeException(s"Type mismatch: expected $fieldTpe ; found $rhsTpe")
+        } catch {
+          case _: NoSuchElementException => throw new NonexistingFieldException(s"Field $obj .$field does not exist")
+        }
+      }
       case MethodDef(tpe, name, args, body) => Nil
       case e: Expr => e match {
         case Var(name) => {
@@ -38,7 +46,7 @@ object Type {
         case Select(obj, field) => {
           val clas = typeOf(obj, ctx)
           val fieldDef = getClassDef(clas).findField(field)
-          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessUndefined(s"Field $field is undefined in class $clas")
+          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessedUndefined(s"Field $field is undefined in class $clas")
         }
         case Apply(obj, method, args) => {
           val clas = typeOf(obj,ctx)
