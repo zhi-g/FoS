@@ -27,12 +27,9 @@ object Type {
           if (c != None) c else throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
         }
         case New(cls, args) => {
-          val clas = getClassDef(cls)
-          val superFieldTypes = for(field<-clas.getFieldsSuperclass) yield typeOf(field,ctx)
-          val fieldTypes = superFieldTypes ::: (for (field<-clas.fields) yield typeOf(field,ctx))
-          val argTypes = for(arg<-args) yield (arg, typeOf(arg,ctx))
-          val map = fieldTypes.zip(argTypes).toMap
-          for (elem <- map) if (!getClassDef(elem._1).isSuperclassOf(Option(getClassDef(elem._2._2)))) throw new ClassConstructorArgsException(s"Argument ${elem._2._1} had incorrect type ${elem._2._2}; expected any subclass of ${elem._1}")
+          val clas = getClassDef(cls)          
+          clas.checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
+          clas.name
         }
         case Cast(cls, e) => Nil
         case Select(obj, fields) => Nil
