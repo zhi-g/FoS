@@ -52,7 +52,16 @@ object Type {
             }            
           } else throw new MethodUndefinedException(s"Method $method is undefined in class $clas")
         }
-        case Cast(cls, e) => Nil
+        case Cast(cls, e) => {
+          val eType = getClassDef(typeOf(e, ctx))
+          if (eType.isSubClassOf(getClassDef(cls))) cls
+          // else if (eType.isSuperclassOf(Option(getClassDef(cls))) && eType.name != cls) cls  //  This is the rule as defined in the paper, but its detail seems useless in our implementation
+          else if (eType.isSuperclassOf(Option(getClassDef(cls)))) cls
+          else { //if (!eType.isSuperclassOf(Option(getClassDef(cls))) && !eType.isSubClassOf(getClassDef(cls))) {   // This is necessary if we use the paper's exact rule above
+            println(s"Warning: Stupid cast of expression $e to type $cls")
+            cls
+          }
+        }
       }
     }
     CT.objectClass
