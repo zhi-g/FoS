@@ -1,8 +1,6 @@
 package fos
 
-import scala.collection.mutable.{Map,HashMap};
-
-
+import scala.collection.mutable.{ Map, HashMap };
 
 case class TypeError(msg: String) extends Exception(msg)
 
@@ -24,17 +22,25 @@ object Type {
       case Assign(obj, field, rhs) => Nil
       case MethodDef(tpe, name, args, body) => Nil
       case e: Expr => e match {
-        case Var(name) => Nil
-        case New(cls, args) => Nil
+        case Var(name) => {
+          val c = ctx.find(_._2 == name)
+          if (c != None) c else throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
+        }
+        case New(cls, args) => {
+          val clas = getClassDef(cls)
+          val superFieldTypes = for(field<-clas.getFieldsSuperclass) yield typeOf(field,ctx)
+          val fieldTypes = superFieldTypes ::: (for (field<-clas.fields) yield typeOf(field,ctx))
+          val argTypes = for(arg<-args) yield (arg, typeOf(arg,ctx))
+          val map = fieldTypes.zip(argTypes).toMap
+          for (elem <- map) if (!getClassDef(elem._1).isSuperclassOf(Option(getClassDef(elem._2._2)))) throw new ClassConstructorArgsException(s"Argument ${elem._2._1} had incorrect type ${elem._2._2}; expected any subclass of ${elem._1}")
+        }
         case Cast(cls, e) => Nil
         case Select(obj, fields) => Nil
         case Apply(obj, method, args) => Nil
       }
-      case Var(name) => Nil
-      case _ => Nil
     }
     CT.objectClass
-  } 
+  }
 }
 
 case class EvaluationException(msg: String) extends Exception
@@ -47,35 +53,34 @@ object Evaluate extends (Expr => Expr) {
     //   ... To complete ...
     expr
   }
- 
 
-  def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef,Expr)]): Expr = exp match {
-    case Select(obj: Expr, field: String)  => Select(substituteInBody(obj, thiss, substs),field)
-    case New(cls, args)                    => New(cls,args map (arg => substituteInBody(arg, thiss, substs)))
-    case Cast(cls, e)                      => Cast(cls,substituteInBody(e, thiss, substs))
-    case Var("this")                       => thiss
+  def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef, Expr)]): Expr = exp match {
+    case Select(obj: Expr, field: String) => Select(substituteInBody(obj, thiss, substs), field)
+    case New(cls, args) => New(cls, args map (arg => substituteInBody(arg, thiss, substs)))
+    case Cast(cls, e) => Cast(cls, substituteInBody(e, thiss, substs))
+    case Var("this") => thiss
     case Var(bd) => substs find (subs => subs._1.name == bd) match {
-        case None => exp
-        case Some((_,sub)) => sub
-      }
+      case None => exp
+      case Some((_, sub)) => sub
+    }
 
-    case Apply(obj,method,args)            => Apply(substituteInBody(obj, thiss, substs), method, args map (arg => substituteInBody(arg, thiss, substs)))
-    case _                                 => throw new EvaluationException("Apply: Forgot expression "+exp)
+    case Apply(obj, method, args) => Apply(substituteInBody(obj, thiss, substs), method, args map (arg => substituteInBody(arg, thiss, substs)))
+    case _ => throw new EvaluationException("Apply: Forgot expression " + exp)
   }
 }
 
 object CT {
 
   val objectClass: String = "Object"
-  private val objectClassDef = ClassDef(objectClass, null, Nil, CtrDef(objectClass, Nil, Nil, Nil) , Nil)
+  private val objectClassDef = ClassDef(objectClass, null, Nil, CtrDef(objectClass, Nil, Nil, Nil), Nil)
 
   private var ct: Map[String, ClassDef] = new HashMap[String, ClassDef]
 
-  add(objectClass,objectClassDef)
+  add(objectClass, objectClassDef)
 
   def elements = ct iterator
 
-  def lookup(classname: String): Option[ClassDef] = if(classname != null) ct get classname else None
+  def lookup(classname: String): Option[ClassDef] = if (classname != null) ct get classname else None
 
   def add(key: String, element: ClassDef): Unit = ct += key -> element
 
@@ -83,16 +88,15 @@ object CT {
 
   def clear(): Unit = {
     ct clear;
-    add(objectClass,objectClassDef)
+    add(objectClass, objectClassDef)
   }
 
 }
 
-
 object Utils {
 
   def getClassDef(className: String): ClassDef = CT lookup className match {
-    case None => throw new TypeError("class "+className+" not declared")
+    case None => throw new TypeError("class " + className + " not declared")
     case Some(c: ClassDef) => c
   }
 }

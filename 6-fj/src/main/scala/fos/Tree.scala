@@ -25,6 +25,9 @@ case class FieldAlreadyDefined(msg: String) extends FieldException(msg)
 abstract class CastException(msg: String) extends TreeException(msg)
 case class StupidCastException(msg: String) extends CastException(msg)
 
+abstract class VarException(msg: String) extends TreeException(msg)
+case class VarUndefinedException(msg: String) extends VarException(msg)
+
 
 sealed abstract class Tree extends Positional
 
