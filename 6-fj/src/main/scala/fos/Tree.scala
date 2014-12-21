@@ -18,9 +18,11 @@ abstract class MethodException(msg: String) extends TreeException(msg)
 case class MethodArgsException(arg: String) extends MethodException(arg)
 case class MethodOverrideException(msg: String) extends MethodException(msg)
 case class MethodArgsLengthException(msg: String) extends MethodException(msg)
+case class MethodUndefinedException(msg: String) extends MethodException(msg)
 
 abstract class FieldException(msg: String) extends TreeException(msg)
 case class FieldAlreadyDefined(msg: String) extends FieldException(msg)
+case class FieldAccessUndefined(msg: String) extends FieldException(msg)
 
 abstract class CastException(msg: String) extends TreeException(msg)
 case class StupidCastException(msg: String) extends CastException(msg)

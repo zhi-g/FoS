@@ -27,13 +27,32 @@ object Type {
           if (c != None) c else throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
         }
         case New(cls, args) => {
-          val clas = getClassDef(cls)          
-          clas.checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
+          val clas = getClassDef(cls)   
+          try{
+            clas.checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
+          } catch {
+            case e: Throwable => throw e
+          }
           clas.name
         }
+        case Select(obj, field) => {
+          val clas = typeOf(obj, ctx)
+          val fieldDef = getClassDef(clas).findField(field)
+          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessUndefined(s"Field $field is undefined in class $clas")
+        }
+        case Apply(obj, method, args) => {
+          val clas = typeOf(obj,ctx)
+          val meth = getClassDef(clas).findMethod(method)
+          if(meth.nonEmpty) {
+            try{
+              (meth.get).checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
+              meth.get.tpe
+            } catch {
+              case e: Throwable => throw e
+            }            
+          } else throw new MethodUndefinedException(s"Method $method is undefined in class $clas")
+        }
         case Cast(cls, e) => Nil
-        case Select(obj, fields) => Nil
-        case Apply(obj, method, args) => Nil
       }
     }
     CT.objectClass
