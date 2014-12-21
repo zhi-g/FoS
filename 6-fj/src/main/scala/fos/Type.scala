@@ -14,8 +14,27 @@ object Type {
   type Class = String
   type Context = List[Pair[Class, String]]
 
-  def typeOf(tree: Tree, ctx: Context): Class =
-  //   ... To complete ... 
+  def typeOf(tree: Tree, ctx: Context): Class = {
+    //   ... To complete ...
+    tree match {
+      case Program(cls, expr) => Nil
+      case ClassDef(name, superclass, fields, ctor, methods) => Nil
+      case FieldDef(tpe, name) => Nil
+      case CtrDef(name, args, supers, body) => Nil
+      case Assign(obj, field, rhs) => Nil
+      case MethodDef(tpe, name, args, body) => Nil
+      case e: Expr => e match {
+        case Var(name) => Nil
+        case New(cls, args) => Nil
+        case Cast(cls, e) => Nil
+        case Select(obj, fields) => Nil
+        case Apply(obj, method, args) => Nil
+      }
+      case Var(name) => Nil
+      case _ => Nil
+    }
+    CT.objectClass
+  } 
 }
 
 case class EvaluationException(msg: String) extends Exception
@@ -24,8 +43,11 @@ object Evaluate extends (Expr => Expr) {
 
   import Utils._
 
-  def apply(expr: Expr): Expr =
-  //   ... To complete ... 
+  def apply(expr: Expr): Expr = {
+    //   ... To complete ...
+    expr
+  }
+ 
 
   def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef,Expr)]): Expr = exp match {
     case Select(obj: Expr, field: String)  => Select(substituteInBody(obj, thiss, substs),field)
