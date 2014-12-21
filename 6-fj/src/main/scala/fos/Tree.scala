@@ -22,6 +22,9 @@ case class MethodArgsLengthException(msg: String) extends MethodException(msg)
 abstract class FieldException(msg: String) extends TreeException(msg)
 case class FieldAlreadyDefined(msg: String) extends FieldException(msg)
 
+abstract class CastException(msg: String) extends TreeException(msg)
+case class StupidCastException(msg: String) extends CastException(msg)
+
 
 sealed abstract class Tree extends Positional
 
