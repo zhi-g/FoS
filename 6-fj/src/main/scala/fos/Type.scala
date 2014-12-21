@@ -17,7 +17,7 @@ object Type {
     tree match {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => Nil
-      case FieldDef(tpe, name) => Nil
+      case FieldDef(tpe, name) => tpe
       case CtrDef(name, args, supers, body) => Nil
       case Assign(obj, field, rhs) => {
         try {
