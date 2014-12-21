@@ -46,7 +46,7 @@ object Type {
         case Select(obj, field) => {
           val clas = typeOf(obj, ctx)
           val fieldDef = getClassDef(clas).findField(field)
-          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessedUndefined(s"Field $field is undefined in class $clas")
+          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessedUndefinedException(s"Field $field is undefined in class $clas")
         }
         case Apply(obj, method, args) => {
           val clas = typeOf(obj,ctx)

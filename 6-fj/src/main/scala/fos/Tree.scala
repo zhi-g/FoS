@@ -56,7 +56,7 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
   private def checkListFieldsDef(f: List[FieldDef]): Unit = {
     f find (field => (f count (_field => _field.name == field.name)) > 1) match {
       case None => ()
-      case Some(varfield) => throw FieldAlreadyDefined("variable "+varfield.name+" is already defined in the scope")
+      case Some(varfield) => throw FieldAlreadyDefinedException("variable "+varfield.name+" is already defined in the scope")
     }
   }
 
@@ -73,7 +73,7 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
     try {
       checkListFieldsDef(args);
     } catch {
-      case FieldAlreadyDefined(msg) => throw FieldAlreadyDefined("In class "+this.name+", in the arguments of method "+name+", "+msg)
+      case FieldAlreadyDefinedException(msg) => throw FieldAlreadyDefinedException("In class "+this.name+", in the arguments of method "+name+", "+msg)
     }
     val inheritedMethod = getClassDef(superclass) findMethod(name);
     inheritedMethod match {
@@ -123,7 +123,7 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
      try {
        checkListFieldsDef (ctor.args);
      } catch {
-       case FieldAlreadyDefined(msg) => throw FieldAlreadyDefined(", in the constructor, "+msg)
+       case FieldAlreadyDefinedException(msg) => throw FieldAlreadyDefinedException(", in the constructor, "+msg)
      }
     val fieldss = fieldLookup;
     val fieldsType = fieldss map (fd => fd.tpe);
