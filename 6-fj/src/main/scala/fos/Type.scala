@@ -91,9 +91,43 @@ object Evaluate extends (Expr => Expr) {
 
   import Utils._
 
-  def apply(expr: Expr): Expr = {
+  def apply(expr: Expr): Expr = expr match {
     //   ... To complete ...
-    expr
+
+    // Computation rules
+    case Var(name) => expr
+    case New(cls, args) => expr
+    case Cast(cls, e) if isValue(e) => e
+    case Select(obj, field) if isValue(obj) => obj match {
+      case New(cls, args) => expr // Need an access to a "global class table" to get which arg to return (see hints)
+    }
+    case Apply(obj, method, args) if isValue(obj) && isValueArg(args) => { //Need access to a global class table again to get method body
+      val substList = args foreach (arg => (args)) // Get a mapping fieldName => arg, then call substituteInBody
+      expr
+    }
+
+    //Congruence rules
+    case Select(obj, field) => Select(apply(obj), field)
+    case Apply(obj, method, args) if isValue(obj) => applyArgs(expr, args)
+    case Apply(obj, method, args) => Apply(apply(obj), method, args)
+    case New(cls, args) => applyArgs(expr, args)
+    case Cast(cls, e) => Cast(cls, apply(e))
+  }
+
+  // Seems to me that only Var and New can be values
+  def isValue(expr: Expr): Boolean = expr match {
+    case Var(name) => true
+    case New(cls, args) => isValueArg(args)
+    case Cast(cls, e) => false
+    case Select(obj, field) => false
+    case Apply(obj, method, args) => false
+  }
+
+  def isValueArg(args: List[Expr]) = args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
+
+  def applyArgs(default: Expr, args: List[Expr]): Expr = args match {
+    case x :: xs => if (!isValue(x)) apply(x) else applyArgs(default, xs)
+    case Nil => default
   }
 
   def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef, Expr)]): Expr = exp match {
