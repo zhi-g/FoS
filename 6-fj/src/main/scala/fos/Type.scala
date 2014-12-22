@@ -23,21 +23,24 @@ object Type {
         try {
           val fieldTpe = getClassDef(obj).findField(field).get.tpe
           val rhsTpe = typeOf(rhs, ctx)
-          if (fieldTpe == rhsTpe) fieldTpe else throw new FieldTypeException(s"Type mismatch: expected $fieldTpe ; found $rhsTpe")
+          if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe")
         } catch {
-          case _: NoSuchElementException => throw new NonexistingFieldException(s"Field $obj .$field does not exist")
+          case _: NoSuchElementException => throw new NonexistingFieldException(s"Field ${obj}.$field does not exist")
         }
       }
       case MethodDef(tpe, name, args, body) => Nil
       case e: Expr => e match {
         case Var(name) => {
           val c = ctx.find(_._2 == name)
-          if (c != None) c else throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
+          c match {
+            case Some((cls, str)) => cls
+            case None => throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
+          }
         }
         case New(cls, args) => {
-          val clas = getClassDef(cls)   
-          try{
-            clas.checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
+          val clas = getClassDef(cls)
+          try {
+            clas.checkTypeArguments(for (arg <- args) yield typeOf(arg, ctx))
           } catch {
             case e: Throwable => throw e
           }
@@ -46,19 +49,25 @@ object Type {
         case Select(obj, field) => {
           val clas = typeOf(obj, ctx)
           val fieldDef = getClassDef(clas).findField(field)
-          if (fieldDef.nonEmpty) typeOf(fieldDef.get, ctx) else throw new FieldAccessedUndefinedException(s"Field $field is undefined in class $clas")
+          fieldDef match {
+            case Some(f) => typeOf(f, ctx)
+            case None => throw new FieldAccessedUndefinedException(s"Field $field is undefined in class $clas")
+          }
         }
         case Apply(obj, method, args) => {
-          val clas = typeOf(obj,ctx)
+          val clas = typeOf(obj, ctx)
           val meth = getClassDef(clas).findMethod(method)
-          if(meth.nonEmpty) {
-            try{
-              (meth.get).checkTypeArguments(for(arg<-args) yield typeOf(arg,ctx))
-              meth.get.tpe
-            } catch {
-              case e: Throwable => throw e
-            }            
-          } else throw new MethodUndefinedException(s"Method $method is undefined in class $clas")
+          meth match {
+            case Some(m) => {
+              try {
+                m.checkTypeArguments(for (arg <- args) yield typeOf(arg, ctx))
+                m.tpe
+              } catch {
+                case e: Throwable => throw e // Should occur when m.checkTypeArguments(...) throws a MethodArgsException
+              }
+            }
+            case None => throw new MethodUndefinedException(s"Method $method is undefined in class $clas")
+          }
         }
         case Cast(cls, e) => {
           val eType = getClassDef(typeOf(e, ctx))
