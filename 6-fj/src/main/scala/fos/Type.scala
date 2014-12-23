@@ -16,7 +16,24 @@ object Type {
     //   ... To complete ...
     tree match {
       case Program(cls, expr) => typeOf(expr, ctx)
-      case ClassDef(name, superclass, fields, ctor, methods) => Nil
+      case ClassDef(name, superclass, fields, ctor, methods) => {
+        val clas = getClassDef(superclass)
+        val superfields = fields.filter(a => ctor.supers.contains(Var(a.name)))
+        val newfields = fields.filterNot(a => superfields.contains(a))
+        try {
+          clas.checkTypeArguments((for (arg <- superfields) yield typeOf(arg, ctx)))
+        } catch {
+          case _: Throwable => throw new ClassConstructorArgsException(s"Constructor of class $name does not initialise super fields properly")
+        }
+        if (!newfields.equals((ctor.body).map(a => a.field))) throw new ClassConstructorArgsException(s"Constructor of class $name does not initialise fields properly")
+        try {
+          for (m <- methods) typeOf(m, ctx)
+        } catch {
+          case e: Throwable => throw e
+        }
+        println(s"Class $name OK")
+        name
+      }
       case FieldDef(tpe, name) => tpe
       case CtrDef(name, args, supers, body) => Nil
       case Assign(obj, field, rhs) => {
