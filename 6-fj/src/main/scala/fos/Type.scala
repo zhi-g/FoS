@@ -28,8 +28,10 @@ object Type {
             throw new TypeError(s"Constructor of class $name does not initialise super fields properly. @ ${tree.pos}")
           }
         }
-        val ctorNewfields = (ctor.body).map(a => a.field)
-        if (!newfields.map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        // the check is not sufficient, what about superclass fields? 
+//        val ctorNewfields = (ctor.body).map(a => a.field)
+//        if (!newfields.map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        	typeOf(ctor, ctx)
         try {
           for (m <- methods) typeOf(m, ctx)
         } catch {
@@ -42,7 +44,20 @@ object Type {
         name
       }
       case FieldDef(tpe, name) => tpe
-      case CtrDef(name, args, supers, body) => Nil
+      case CtrDef(name, args, supers, body) =>
+        val clas = getClassDef(name)
+        val ctorNewfields = body.map(a => a.field)
+        if (!args.filterNot(a=> supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        val supFields = clas.getFieldsSuperclass
+        if (!supFields.map(a => a.name).equals(supers)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        try {
+          for (a <- body) typeOf(a, ctx)
+        } catch {
+          case e: TypeError =>
+            print(e.msg)
+            throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        }
+        name
       case Assign(obj, field, rhs) => {
         try {
           val fieldTpe = getClassDef(obj).findField(field).get.tpe
@@ -83,7 +98,7 @@ object Type {
           case e: TypeError => {
             println(e.msg)
             throw new TypeError(s"Body of method $meth could not be typechecked. @ ${tree.pos}")
-            }
+          }
           case e: Throwable => throw new TypeError(s"Body of method $meth could not be typechecked. @ ${tree.pos}")
         }
       }
