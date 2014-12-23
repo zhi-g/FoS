@@ -182,6 +182,8 @@ object CT {
   def elements = ct iterator
 
   def lookup(classname: String): Option[ClassDef] = if (classname != null) ct get classname else None
+  
+  def lookupMethod(methodname: String): Option[(String, ClassDef)] = elements.find(a => a._2.findMethod(methodname) != None)
 
   def add(key: String, element: ClassDef): Unit = ct += key -> element
 
