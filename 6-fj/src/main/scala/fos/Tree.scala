@@ -19,6 +19,7 @@ case class MethodArgsException(arg: String) extends MethodException(arg)
 case class MethodOverrideException(msg: String) extends MethodException(msg)
 case class MethodArgsLengthException(msg: String) extends MethodException(msg)
 case class MethodUndefinedException(msg: String) extends MethodException(msg)
+case class MethodTypeMismatchException(msg: String)  extends MethodException(msg)
 
 abstract class FieldException(msg: String) extends TreeException(msg)
 case class FieldAlreadyDefinedException(msg: String) extends FieldException(msg)

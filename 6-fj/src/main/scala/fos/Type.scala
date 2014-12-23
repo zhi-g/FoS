@@ -28,7 +28,19 @@ object Type {
           case _: NoSuchElementException => throw new NonexistingFieldException(s"Field ${obj}.$field does not exist")
         }
       }
-      case MethodDef(tpe, name, args, body) => Nil
+      case MethodDef(tpe, name, args, body) => {
+        try{
+          val bodyTpe = getClassDef(typeOf(body, ctx ::: (for (arg <- args) yield ((arg.tpe, arg.name)))))
+          if (bodyTpe.isSubClassOf(tpe)){
+            println(s"$name OK in $tpe")
+            tpe
+          } else {
+            throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected $tpe, found $bodyTpe")
+          }
+        } catch { // Means the body could not be typechecked, so keep throwing the error.
+          case e: Throwable => throw e
+        }
+      }
       case e: Expr => e match {
         case Var(name) => {
           val c = ctx.find(_._2 == name)
