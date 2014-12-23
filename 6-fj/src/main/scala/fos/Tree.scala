@@ -70,6 +70,14 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
     }
     case Some(method) => Some(method)
   }
+  
+  def containsMethod(method: MethodDef): Boolean = methods find (m => m == method) match { // Reference comparison since the name of a method does  not identify it uniquely
+    case None => CT lookup superclass match {
+      case None => false
+      case Some(superc) => superc containsMethod method
+    }
+    case Some(_) => true
+  }
 
   def overrideMethod(tpe: String, name: String, args: List[FieldDef], body: Expr): Unit = {
     if( (methods count (m => m.name == name)) > 1) throw new MethodOverrideException(", method "+name+" is defined more than once")

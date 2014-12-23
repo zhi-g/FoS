@@ -28,31 +28,32 @@ object Type {
           case _: NoSuchElementException => throw new NonexistingFieldException(s"Field ${obj}.$field does not exist")
         }
       }
-      case MethodDef(tpe, name, args, body) => {
+      case meth: MethodDef => {
         try {
-          CT.lookupMethod(name) match {
-            case Some((clas, _)) => {
-              val innerCtx = (clas, "this") :: (for (arg <- args) yield ((arg.tpe, arg.name)))
-              val bodyTpe = getClassDef(typeOf(body, innerCtx))
-              if (bodyTpe.isSubClassOf(tpe)) { // Check that body type is a subclass of expected return type
+          CT.lookupMethod(meth) match {
+            case Some(v) => {
+              val clas = v._1
+              val innerCtx = (clas, "this") :: meth.args.map(arg => (arg.tpe, arg.name))
+              val bodyTpe = getClassDef(typeOf(meth.body, innerCtx))
+              if (bodyTpe.isSubClassOf(meth.tpe)) { // Check that body type is a subclass of expected return type
                 val superclass = getClassDef(clas)
-                val overriden = superclass.findMethod(name)
+                val overriden = superclass.findMethod(meth.name)
                 overriden match { // Check that return and argument types match
                   case Some(o) => {
-                    val givenArgTypes = for (arg <- args) yield arg.tpe
-                    val expectedArgTypes = for (arg <- o.args) yield arg.tpe
-                    if (!o.tpe.equals(tpe)) throw new MethodOverrideException(s"Method $name return type does not match that of overriden method. Expected ${o.tpe} but found $tpe")
-                    else if (!givenArgTypes.equals(expectedArgTypes)) throw new MethodOverrideException(s"Argument types of method $name do not match that of overriden method.")
+                    val givenArgTypes = meth.args map (arg => arg.tpe)
+                    val expectedArgTypes = o.args map (arg => arg.tpe)
+                    if (!o.tpe.equals(meth.tpe)) throw new MethodOverrideException("Method " + meth.name + s" return type does not match that of overriden method. Expected ${o.tpe} but found " + meth.tpe)
+                    else if (!givenArgTypes.equals(expectedArgTypes)) throw new MethodOverrideException(s"Argument types of method " + meth.name + " do not match that of overriden method.")
                   }
-                  //case None =>
+                  case None => meth.tpe
                 }
                 // println(s"MethodDef: $name OK in $clas")
-                tpe
+                meth.tpe
               } else {
-                throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected $tpe, found $bodyTpe")
+                throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected " + meth.tpe + s", found $bodyTpe")
               }
             }
-            case None => // Should not occur
+            case None => meth.tpe
           }
         } catch { // Means the body could not be typechecked
           case e: Throwable => throw e
@@ -141,7 +142,7 @@ object Evaluate extends (Expr => Expr) {
         }
         case None => throw new ClassUndefinedException("Class " + cls + " is used but nor defined")
       }
-      case _ => throw new Exception("Method should be called on objects")
+      case _ => throw new EvaluationException("Method should be called on objects")
     }
 
     //Congruence rules
@@ -151,7 +152,7 @@ object Evaluate extends (Expr => Expr) {
     case New(cls, args) => New(cls, applyArgs(args))
     case Cast(cls, e) => Cast(cls, apply(e))
 
-    case _ => throw new Exception("Couldn't apply any method to the expression " + expr)
+    case _ => throw new EvaluationException("Couldn't apply any method to the expression " + expr)
   }
 
   // Seems to me that only Var and New can be values
@@ -198,7 +199,7 @@ object CT {
 
   def lookup(classname: String): Option[ClassDef] = if (classname != null) ct get classname else None
 
-  def lookupMethod(methodname: String): Option[(String, ClassDef)] = elements.find(a => a._2.findMethod(methodname) != None)
+  def lookupMethod(method: MethodDef): Option[(String, ClassDef)] = elements.find(a => a._2.containsMethod(method))
 
   def add(key: String, element: ClassDef): Unit = ct += key -> element
 
