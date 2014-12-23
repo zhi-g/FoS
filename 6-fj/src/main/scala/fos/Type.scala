@@ -122,11 +122,22 @@ object Evaluate extends (Expr => Expr) {
     // Computation rules
     case Cast(cls, e) if isValue(e) => e
     case Select(obj, field) if isValue(obj) => obj match {
-      case New(cls, args) => expr // Need an access to a "global class table" to get which arg to return (see hints)
+      case New(cls, args) => CT.lookup(cls) match {
+        case Some(c) => args(c.getFieldIndex(field))
+        case None => throw ClassUndefinedException("Using undefined class " + expr)
+      }
     }
-    case Apply(obj, method, args) if isValue(obj) && isValueArg(args) => { //Need access to a global class table again to get method body
-      val substList = args foreach (arg => (args)) // Get a mapping fieldName => arg, then call substituteInBody
-      expr
+    case Apply(obj, method, args) if isValue(obj) && isValueArg(args) => obj match {
+      case New(cls, cArgs) => CT.lookup(cls) match {
+        case Some(v) => v.findMethod(method) match {
+          case Some(m) => {
+            substituteInBody(m.body, New(cls, cArgs), m.args zip args)
+          }
+          case None => throw new MethodUndefinedException("Method " + method + " in class " + cls + " is undefined")
+        }
+        case None => throw new ClassUndefinedException("Class " + cls + " is used but nor defined")
+      }
+      case _ => throw new Exception("Method should be called on objects")
     }
 
     //Congruence rules
@@ -135,7 +146,7 @@ object Evaluate extends (Expr => Expr) {
     case Apply(obj, method, args) => Apply(apply(obj), method, args)
     case New(cls, args) => New(cls, applyArgs(args))
     case Cast(cls, e) => Cast(cls, apply(e))
-    
+
     case _ => throw new Exception("Couldn't apply any method to the expression " + expr)
   }
 
@@ -151,7 +162,7 @@ object Evaluate extends (Expr => Expr) {
   def isValueArg(args: List[Expr]) = args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
 
   def applyArgs(args: List[Expr]): List[Expr] = args match {
-    case x :: xs => if (!isValue(x)) apply(x)::xs else x::applyArgs(xs)
+    case x :: xs => if (!isValue(x)) apply(x) :: xs else x :: applyArgs(xs)
     case Nil => throw new Exception("Couldn't evaluate any of the arguments passed to applyArgs: " + args.mkString("(", ",", ")")) // Should never happen
   }
 

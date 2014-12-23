@@ -12,6 +12,7 @@ import Utils._
 abstract class TreeException(msg: String) extends Exception
 
 abstract class ClassException(msg: String) extends TreeException(msg)
+case class ClassUndefinedException(msg: String) extends TreeException(msg)
 case class ClassConstructorArgsException(msg: String) extends ClassException(msg)
 
 abstract class MethodException(msg: String) extends TreeException(msg)
@@ -48,6 +49,8 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
   def findField(fieldName: String): Option[FieldDef] = fieldLookup find (f => f.name == fieldName)
 
   def checkFields: Unit = checkListFieldsDef(fieldLookup)
+  
+  def getFieldIndex(fieldName: String): Int = fieldLookup indexWhere (f => f.name == fieldName)
 
   /**
    * Verify that in the list there is no two occurrence of the same variable name
