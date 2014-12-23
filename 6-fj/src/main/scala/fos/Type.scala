@@ -18,18 +18,25 @@ object Type {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
         val clas = getClassDef(superclass)
-        val superfields = fields.filter(a => ctor.supers.contains(Var(a.name)))
+        val superfields = clas.fields.filter(a => ctor.supers.contains(Var(a.name)))
         val newfields = fields.filterNot(a => superfields.contains(a))
         try {
           clas.checkTypeArguments((for (arg <- superfields) yield typeOf(arg, ctx)))
         } catch {
-          case _: Throwable => throw new ClassConstructorArgsException(s"Constructor of class $name does not initialise super fields properly")
+          case e: ClassConstructorArgsException => {
+            println(e.msg)
+            throw new TypeError(s"Constructor of class $name does not initialise super fields properly. @ ${tree.pos}")
+          }
         }
-        if (!newfields.equals((ctor.body).map(a => a.field))) throw new ClassConstructorArgsException(s"Constructor of class $name does not initialise fields properly")
+        val ctorNewfields = (ctor.body).map(a => a.field)
+        if (!newfields.map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
         try {
           for (m <- methods) typeOf(m, ctx)
         } catch {
-          case e: Throwable => throw e
+          case e: TypeError => {
+            println(e.msg)
+            throw new TypeError(s"Constructor of class $name does not declare its methods correctly. @ ${tree.pos}")
+          }
         }
         println(s"Class $name OK")
         name
@@ -40,9 +47,9 @@ object Type {
         try {
           val fieldTpe = getClassDef(obj).findField(field).get.tpe
           val rhsTpe = typeOf(rhs, ctx)
-          if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe")
+          if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
         } catch {
-          case _: NoSuchElementException => throw new NonexistingFieldException(s"Field ${obj}.$field does not exist")
+          case _: NoSuchElementException => throw new TypeError(s"Field ${obj}.$field does not exist. @ ${tree.pos}")
         }
       }
       case meth: MethodDef => {
@@ -59,21 +66,25 @@ object Type {
                   case Some(o) => {
                     val givenArgTypes = meth.args map (arg => arg.tpe)
                     val expectedArgTypes = o.args map (arg => arg.tpe)
-                    if (!o.tpe.equals(meth.tpe)) throw new MethodOverrideException("Method " + meth.name + s" return type does not match that of overriden method. Expected ${o.tpe} but found " + meth.tpe)
-                    else if (!givenArgTypes.equals(expectedArgTypes)) throw new MethodOverrideException(s"Argument types of method " + meth.name + " do not match that of overriden method.")
+                    if (!o.tpe.equals(meth.tpe)) throw new TypeError("Method " + meth.name + s" return type does not match that of overriden method. Expected ${o.tpe} but found " + meth.tpe + s". @ ${tree.pos}")
+                    else if (!givenArgTypes.equals(expectedArgTypes)) throw new TypeError(s"Argument types of method " + meth.name + s" do not match that of overriden method. @ ${tree.pos}")
                   }
                   case None => meth.tpe
                 }
                 // println(s"MethodDef: $name OK in $clas")
                 meth.tpe
               } else {
-                throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected " + meth.tpe + s", found $bodyTpe")
+                throw new TypeError(s"Type of body did not match return type. Expected " + meth.tpe + s", found $bodyTpe. @ ${tree.pos}")
               }
             }
             case None => meth.tpe
           }
         } catch { // Means the body could not be typechecked
-          case e: Throwable => throw e
+          case e: TypeError => {
+            println(e.msg)
+            throw new TypeError(s"Body of method $meth could not be typechecked. @ ${tree.pos}")
+            }
+          case e: Throwable => throw new TypeError(s"Body of method $meth could not be typechecked. @ ${tree.pos}")
         }
       }
       case e: Expr => e match {
@@ -81,7 +92,7 @@ object Type {
           val c = ctx.find(_._2 == name)
           c match {
             case Some((cls, str)) => cls
-            case None => throw new VarUndefinedException(s"Variable $name was not defined in the scope") // Can this ever happen ?
+            case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ?
           }
         }
         case New(cls, args) => {
@@ -89,7 +100,10 @@ object Type {
           try {
             clas.checkTypeArguments(for (arg <- args) yield typeOf(arg, ctx))
           } catch {
-            case e: Throwable => throw e
+            case e: ClassConstructorArgsException => {
+              println(e.msg)
+              throw new TypeError(s"Arguments of New declaration did not match those expected. @ ${tree.pos}")
+            }
           }
           clas.name
         }
@@ -98,7 +112,7 @@ object Type {
           val fieldDef = getClassDef(clas).findField(field)
           fieldDef match {
             case Some(f) => typeOf(f, ctx)
-            case None => throw new FieldAccessedUndefinedException(s"Field $field is undefined in class $clas")
+            case None => throw new TypeError(s"Field $field is undefined in class $clas. @ ${tree.pos}")
           }
         }
         case Apply(obj, method, args) => {
@@ -110,10 +124,13 @@ object Type {
                 m.checkTypeArguments(for (arg <- args) yield typeOf(arg, ctx))
                 m.tpe
               } catch {
-                case e: Throwable => throw e // Should occur when m.checkTypeArguments(...) throws a MethodArgsException
+                case e: MethodArgsException => {
+                  println(s"${e.arg}. @ ${tree.pos}")
+                  throw new TypeError(s"Arguments passed to method $m did not match those expected. @ ${tree.pos}")
+                }
               }
             }
-            case None => throw new MethodUndefinedException(s"Method $method is undefined in class $clas")
+            case None => throw new TypeError(s"Method $method is undefined in class $clas. @ ${tree.pos}")
           }
         }
         case Cast(cls, e) => {
@@ -122,7 +139,7 @@ object Type {
           // else if (eType.isSuperclassOf(Option(getClassDef(cls))) && eType.name != cls) cls  //  This is the rule as defined in the paper, but its detail seems useless in our implementation
           else if (eType.isSuperclassOf(Option(getClassDef(cls)))) cls
           else { //if (!eType.isSuperclassOf(Option(getClassDef(cls))) && !eType.isSubClassOf(getClassDef(cls))) {   // This is necessary if we use the paper's exact rule above
-            println(s"Warning: Stupid cast of expression $e to type $cls")
+            println(s"Warning: Stupid cast of expression $e to type $cls. @ ${tree.pos}")
             cls
           }
         }
