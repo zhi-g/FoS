@@ -29,26 +29,30 @@ object Type {
         }
       }
       case MethodDef(tpe, name, args, body) => {
-        try{
-          val clas = "C"  // TODO: Using a global Class Table will allow to find the class defining the method.
-          val innerCtx = (clas, "this") :: (for (arg <- args) yield ((arg.tpe, arg.name)))
-          val bodyTpe = getClassDef(typeOf(body, innerCtx))
-          if (bodyTpe.isSubClassOf(tpe)) { // Check that body type is a subclass of expected return type
-            val superclass = getClassDef(clas)
-            val overriden = superclass.findMethod(name)
-            overriden match { // Check that return and argument types match
-              case Some(o) => {
-                val givenArgTypes = for (arg <- args) yield arg.tpe
-                val expectedArgTypes = for (arg <- o.args) yield arg.tpe
-                if(!o.tpe.equals(tpe)) throw new MethodOverrideException(s"Method $name return type does not match that of overriden method. Expected ${o.tpe} but found $tpe")
-                else if(!givenArgTypes.equals(expectedArgTypes)) throw new MethodOverrideException(s"Argument types of method $name do not match that of overriden method.")
+        try {
+          CT.lookupMethod(name) match {
+            case Some((clas, _)) => {
+              val innerCtx = (clas, "this") :: (for (arg <- args) yield ((arg.tpe, arg.name)))
+              val bodyTpe = getClassDef(typeOf(body, innerCtx))
+              if (bodyTpe.isSubClassOf(tpe)) { // Check that body type is a subclass of expected return type
+                val superclass = getClassDef(clas)
+                val overriden = superclass.findMethod(name)
+                overriden match { // Check that return and argument types match
+                  case Some(o) => {
+                    val givenArgTypes = for (arg <- args) yield arg.tpe
+                    val expectedArgTypes = for (arg <- o.args) yield arg.tpe
+                    if (!o.tpe.equals(tpe)) throw new MethodOverrideException(s"Method $name return type does not match that of overriden method. Expected ${o.tpe} but found $tpe")
+                    else if (!givenArgTypes.equals(expectedArgTypes)) throw new MethodOverrideException(s"Argument types of method $name do not match that of overriden method.")
+                  }
+                  //case None =>
+                }
+                // println(s"MethodDef: $name OK in $clas")
+                tpe
+              } else {
+                throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected $tpe, found $bodyTpe")
               }
-              //case None =>
             }
-            // println(s"MethodDef: $name OK in $clas")
-            tpe
-          } else {
-            throw new MethodTypeMismatchException(s"Type of body did not match return type. Expected $tpe, found $bodyTpe")
+            case None => // Should not occur
           }
         } catch { // Means the body could not be typechecked
           case e: Throwable => throw e
@@ -193,7 +197,7 @@ object CT {
   def elements = ct iterator
 
   def lookup(classname: String): Option[ClassDef] = if (classname != null) ct get classname else None
-  
+
   def lookupMethod(methodname: String): Option[(String, ClassDef)] = elements.find(a => a._2.findMethod(methodname) != None)
 
   def add(key: String, element: ClassDef): Unit = ct += key -> element
