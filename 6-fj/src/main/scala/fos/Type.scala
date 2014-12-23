@@ -120,8 +120,6 @@ object Evaluate extends (Expr => Expr) {
     //   ... To complete ...
 
     // Computation rules
-    case Var(name) => expr
-    case New(cls, args) => expr
     case Cast(cls, e) if isValue(e) => e
     case Select(obj, field) if isValue(obj) => obj match {
       case New(cls, args) => expr // Need an access to a "global class table" to get which arg to return (see hints)
@@ -133,10 +131,12 @@ object Evaluate extends (Expr => Expr) {
 
     //Congruence rules
     case Select(obj, field) => Select(apply(obj), field)
-    case Apply(obj, method, args) if isValue(obj) => applyArgs(expr, args)
+    case Apply(obj, method, args) if isValue(obj) => Apply(obj, method, applyArgs(args))
     case Apply(obj, method, args) => Apply(apply(obj), method, args)
-    case New(cls, args) => applyArgs(expr, args)
+    case New(cls, args) => New(cls, applyArgs(args))
     case Cast(cls, e) => Cast(cls, apply(e))
+    
+    case _ => throw new Exception("Couldn't apply any method to the expression " + expr)
   }
 
   // Seems to me that only Var and New can be values
@@ -150,9 +150,9 @@ object Evaluate extends (Expr => Expr) {
 
   def isValueArg(args: List[Expr]) = args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
 
-  def applyArgs(default: Expr, args: List[Expr]): Expr = args match {
-    case x :: xs => if (!isValue(x)) apply(x) else applyArgs(default, xs)
-    case Nil => default
+  def applyArgs(args: List[Expr]): List[Expr] = args match {
+    case x :: xs => if (!isValue(x)) apply(x)::xs else x::applyArgs(xs)
+    case Nil => throw new Exception("Couldn't evaluate any of the arguments passed to applyArgs: " + args.mkString("(", ",", ")")) // Should never happen
   }
 
   def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef, Expr)]): Expr = exp match {
