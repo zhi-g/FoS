@@ -13,20 +13,16 @@ object Type {
   type Context = List[Pair[Class, String]]
 
   def typeOf(tree: Tree, ctx: Context): Class = {
-    //   ... To complete ...
     tree match {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
-        println(s"Typechecking class $name")
         if (hasInheritanceCycle(name, getClassDef(superclass))) throw new InheritanceCycleException("Cycle in inheritance definition of class " + name)
-        typeOf(ctor, ctx) //check the constructor
-        for (m <- methods) typeOf(m, (name, "this") :: ctx) // check the methods
-        println(s"Class $name OK")
-        name //everything is ok, can return the type of the class
+        typeOf(ctor, ctx)
+        for (m <- methods) typeOf(m, (name, "this") :: ctx)
+        name
       }
-      case FieldDef(tpe, name) => tpe //ok
+      case FieldDef(tpe, name) => tpe
       case CtrDef(name, args, supers, body) =>
-        println(s"Typechecking the constructor of $name")
         val clas = getClassDef(name)
         val ctorNewfields = body.map(a => a.field)
         val supFields = clas.getFieldsSuperclass
@@ -72,7 +68,6 @@ object Type {
                   }
                   case None => meth.tpe
                 }
-                // println(s"MethodDef: $name OK in $clas")
                 meth.tpe
               } else {
                 throw new TypeError(s"Type of body did not match return type. Expected " + meth.tpe + s", found $bodyTpe. @ ${tree.pos}")
@@ -80,7 +75,7 @@ object Type {
             }
             case None => meth.tpe
           }
-        } catch { // Means the body could not be typechecked
+        } catch { // Means the body could not be type checked
           case e: TypeError => {
             println(e.msg)
             throw new TypeError(s"Body of method $meth could not be typechecked. @ ${tree.pos}")
@@ -91,7 +86,7 @@ object Type {
       case e: Expr => e match {
         case Var(name) => {
           val tpe = findVar(name, ctx)
-          if (tpe == null) throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
+          if (tpe == null) throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}")
 
           return tpe
         }
@@ -140,7 +135,6 @@ object Type {
         }
       }
     }
-    // CT.objectClass // not a good idea... 
   }
 
   def findVar(v: String, ctx: Context) = {
@@ -177,8 +171,6 @@ object Evaluate extends (Expr => Expr) {
   import Utils._
 
   def apply(expr: Expr): Expr = expr match {
-    //   ... To complete ...
-
     // Computation rules
     case Cast(cls, e) if isValue(e) => e
     case Select(obj, field) if isValue(obj) => obj match {
@@ -197,7 +189,7 @@ object Evaluate extends (Expr => Expr) {
         }
         case None => throw new ClassUndefinedException("Class " + cls + " is used but nor defined")
       }
-      case _ => throw new EvaluationException("Method should be called on objects") // Should never happen
+      case _ => throw new EvaluationException("Method should be called on objects")
     }
 
     //Congruence rules
@@ -210,20 +202,17 @@ object Evaluate extends (Expr => Expr) {
     case _ => throw new NoRuleApplies("Couldn't apply any method to the expression " + expr)
   }
 
-  // Seems to me that only Var and New can be values
   def isValue(expr: Expr): Boolean = expr match {
     case Var(name) => true
     case New(cls, args) => isValueArg(args)
-    case Cast(cls, e) => false
-    case Select(obj, field) => false
-    case Apply(obj, method, args) => false
+    case _ => false
   }
 
-  def isValueArg(args: List[Expr]) = if (args.isEmpty) true else args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
+  def isValueArg(args: List[Expr]) = if (args.isEmpty) true else args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2)
 
   def applyArgs(args: List[Expr]): List[Expr] = args match {
     case x :: xs => if (!isValue(x)) apply(x) :: xs else x :: applyArgs(xs)
-    case Nil => throw new Exception("Couldn't evaluate any of the arguments passed to applyArgs: " + args.mkString("(", ",", ")")) // Should never happen
+    case Nil => throw new EvaluationException("Couldn't evaluate any of the arguments passed to applyArgs: " + args.mkString("(", ",", ")")) // Should never happen (bad call to the method)
   }
 
   def substituteInBody(exp: Expr, thiss: New, substs: List[(FieldDef, Expr)]): Expr = exp match {

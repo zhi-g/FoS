@@ -72,7 +72,7 @@ case class ClassDef(name: String, superclass: String, fields: List[FieldDef], ct
     case Some(method) => Some(method)
   }
   
-  def containsMethod(method: MethodDef): Boolean = methods find (m => m == method) match { // Reference comparison since the name of a method does  not identify it uniquely
+  def containsMethod(method: MethodDef): Boolean = methods find (m => m == method) match {
     case None => CT lookup superclass match {
       case None => false
       case Some(superc) => superc containsMethod method
