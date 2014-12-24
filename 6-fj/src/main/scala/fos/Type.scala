@@ -190,7 +190,7 @@ object Evaluate extends (Expr => Expr) {
     case Select(obj, field) => Select(apply(obj), field)
     case Apply(obj, method, args) if isValue(obj) => Apply(obj, method, applyArgs(args))
     case Apply(obj, method, args) => Apply(apply(obj), method, args)
-    case New(cls, args) => New(cls, applyArgs(args))
+    case New(cls, args) if (!isValueArg(args)) => New(cls, applyArgs(args))     
     case Cast(cls, e) => Cast(cls, apply(e))
 
     case _ => throw new EvaluationException("Couldn't apply any method to the expression " + expr)
