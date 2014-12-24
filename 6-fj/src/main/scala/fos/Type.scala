@@ -216,7 +216,7 @@ object Evaluate extends (Expr => Expr) {
     case Apply(obj, method, args) => false
   }
 
-  def isValueArg(args: List[Expr]) = args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
+  def isValueArg(args: List[Expr]) = if(args.isEmpty) true else args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
 
   def applyArgs(args: List[Expr]): List[Expr] = args match {
     case x :: xs => if (!isValue(x)) apply(x) :: xs else x :: applyArgs(xs)
