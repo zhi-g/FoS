@@ -160,7 +160,7 @@ object FJ extends StandardTokenParsers {
       var t1 = reduce(t)
       Stream.cons(t, path(t1, reduce))
     } catch {
-      case EvaluationException(_) =>
+      case NoRuleApplies(_) =>
         Stream.cons(t, Stream.empty)
     }
 
@@ -185,7 +185,11 @@ object FJ extends StandardTokenParsers {
             println("The expression generate an exception in Java: " + msg)
             CT.clear
             Stream.cons(expr, Stream.empty)
-
+          case InheritanceCycleException(msg) =>
+            println(msg)
+            println("The expression won't be type checked nor evaluated")
+            CT.clear
+            Stream.cons(expr, Stream.empty)
           case e: Throwable =>
             println(e)
             CT.clear

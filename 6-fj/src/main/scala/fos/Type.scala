@@ -18,6 +18,7 @@ object Type {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
         println(s"Typechecking class $name")
+        if(hasInheritanceCycle(name, getClassDef(superclass))) throw new InheritanceCycleException("Cycle in inheritance definition of class " + name)
         typeOf(ctor, ctx) //check the constructor
         for (m <- methods) typeOf(m, (name, "this") :: ctx) // check the methods
         println(s"Class $name OK")
@@ -91,7 +92,7 @@ object Type {
         case Var(name) => {
           val tpe = findVar(name, ctx)
           if (tpe == null) throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
-       
+
           return tpe
         }
         case New(cls, args) => {
@@ -154,9 +155,16 @@ object Type {
       case None => null
     }
   }
+
+  def hasInheritanceCycle(head: String, current: ClassDef): Boolean = current.name match {
+    case "Object" => false
+    case `head` => true
+    case _ => hasInheritanceCycle(head, getClassDef(current.superclass))
+  }
 }
 
 case class EvaluationException(msg: String) extends Exception
+case class NoRuleApplies(msg: String) extends Exception
 
 object Evaluate extends (Expr => Expr) {
 
@@ -183,17 +191,17 @@ object Evaluate extends (Expr => Expr) {
         }
         case None => throw new ClassUndefinedException("Class " + cls + " is used but nor defined")
       }
-      case _ => throw new EvaluationException("Method should be called on objects")
+      case _ => throw new EvaluationException("Method should be called on objects") // Should never happen
     }
 
     //Congruence rules
     case Select(obj, field) => Select(apply(obj), field)
     case Apply(obj, method, args) if isValue(obj) => Apply(obj, method, applyArgs(args))
     case Apply(obj, method, args) => Apply(apply(obj), method, args)
-    case New(cls, args) if (!isValueArg(args)) => New(cls, applyArgs(args))     
+    case New(cls, args) if (!isValueArg(args)) => New(cls, applyArgs(args))
     case Cast(cls, e) => Cast(cls, apply(e))
 
-    case _ => throw new EvaluationException("Couldn't apply any method to the expression " + expr)
+    case _ => throw new NoRuleApplies("Couldn't apply any method to the expression " + expr)
   }
 
   // Seems to me that only Var and New can be values
@@ -221,9 +229,7 @@ object Evaluate extends (Expr => Expr) {
       case None => exp
       case Some((_, sub)) => sub
     }
-
     case Apply(obj, method, args) => Apply(substituteInBody(obj, thiss, substs), method, args map (arg => substituteInBody(arg, thiss, substs)))
-    case _ => throw new EvaluationException("Apply: Forgot expression " + exp)
   }
 }
 

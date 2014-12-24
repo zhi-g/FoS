@@ -12,7 +12,8 @@ import Utils._
 abstract class TreeException(msg: String) extends Exception
 
 abstract class ClassException(msg: String) extends TreeException(msg)
-case class ClassUndefinedException(msg: String) extends TreeException(msg)
+case class InheritanceCycleException(msg: String) extends ClassException(msg)
+case class ClassUndefinedException(msg: String) extends ClassException(msg)
 case class ClassConstructorArgsException(msg: String) extends ClassException(msg)
 
 abstract class MethodException(msg: String) extends TreeException(msg)
