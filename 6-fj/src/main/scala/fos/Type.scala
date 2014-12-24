@@ -29,8 +29,7 @@ object Type {
         val clas = getClassDef(name)
         val ctorNewfields = body.map(a => a.field)
         val supFields = clas.getFieldsSuperclass
-
-        if (!args.filterNot(a => supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields) || !supFields.map(a => a.name).equals(supers)) {
+        if (!args.filterNot(a => supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields) || !supFields.map(a => new Var(a.name)).equals(supers)) {
           println("Args not OK")
           throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
         }
