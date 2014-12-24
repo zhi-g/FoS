@@ -17,23 +17,17 @@ object Type {
     tree match {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
-        val clas = getClassDef(superclass)
-        println("class " + clas)
-        val superfields = clas.fields.filter(a => ctor.supers.contains(Var(a.name)))
-        println("Super fields " + superfields)
-        val newfields = fields.filterNot(a => superfields.contains(a))
-        println("New fields: " + newfields)
-        println("type of constr")
-        println(typeOf(ctor, ctx)) //check the constructor
-        println("Done")
+        println(s"Typechecking class $name")
+        typeOf(ctor, ctx) //check the constructor
         for (m <- methods) typeOf(m, (name, "this") :: ctx) // check the methods
         println(s"Class $name OK")
         name //everything is ok, can return the type of the class
       }
       case FieldDef(tpe, name) => tpe //ok
       case CtrDef(name, args, supers, body) =>
+        println(s"Typechecking the constructor of $name")
         val clas = getClassDef(name)
-        val ctorNewfields = body.map(a => a.field) //not sure if good idea, here we only keep the fields that are mentioned in the assignements
+        val ctorNewfields = body.map(a => a.field)
         val supFields = clas.getFieldsSuperclass
 
         if (!args.filterNot(a => supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields) || !supFields.map(a => a.name).equals(supers)) {
@@ -48,17 +42,11 @@ object Type {
             throw new TypeError(s"Constructor of class $name does not initialise super fields properly. @ ${tree.pos}")
           }
         }
-        println("Args are ok")
-        println("name is " + name)
-        for (a <- body) typeOf(a, (name, "this" ) :: (args.map(a => (a.tpe, a.name)) ::: ctx))
-        println("Body ok")
+        for (a <- body) typeOf(a, (name, "this") :: (args.map(a => (a.tpe, a.name)) ::: ctx))
         name
       case Assign(obj, field, rhs) => {
         try {
-          println("Type assign")
-          println("Object is " + obj)
           val fieldTpe = if (obj == "this") getClassDef(findVar("this", ctx)).findField(field).get.tpe else getClassDef(obj).findField(field).get.tpe
-          println("field type: " + fieldTpe)
           val rhsTpe = typeOf(rhs, ctx)
           if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
         } catch {
@@ -102,11 +90,10 @@ object Type {
       }
       case e: Expr => e match {
         case Var(name) => {
-          val c = ctx.find(_._2 == name)
-          c match {
-            case Some((cls, str)) => cls
-            case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
-          }
+          val tpe = findVar(name, ctx)
+          if (tpe == null) throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
+       
+          return tpe
         }
         case New(cls, args) => {
           val clas = getClassDef(cls)
@@ -118,13 +105,10 @@ object Type {
               throw new TypeError(s"Arguments of New declaration did not match those expected. @ ${tree.pos}")
             }
           }
-          println("new class name is " + clas.name)
           return clas.name
         }
         case Select(obj, field) => {
-          println("object is " + obj)
           val clas = typeOf(obj, ctx)
-          print(s"class name in select is $clas")
           val fieldDef = getClassDef(clas).findField(field)
           fieldDef match {
             case Some(f) => typeOf(f, ctx)
@@ -169,7 +153,7 @@ object Type {
     c match {
       case Some((cls, str)) => cls
       case None => null
-      }
+    }
   }
 }
 
