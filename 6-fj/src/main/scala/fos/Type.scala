@@ -50,16 +50,16 @@ object Type {
         }
         println("Args are ok")
         println("name is " + name)
-        println("context is " + ("this", name) :: (args.map( a => (a.name, a.tpe)) ::: ctx))
-        for (a <- body) typeOf(a,("this", name) :: (args.map( a => (a.name, a.tpe)) ::: ctx))
+        println("context is " + ("this", name) :: (args.map(a => (a.name, a.tpe)) ::: ctx))
+        for (a <- body) typeOf(a, ("this", name) :: (args.map(a => (a.name, a.tpe)) ::: ctx))
         println("Body ok")
         name
       case Assign(obj, field, rhs) => {
         try {
           println("Type assign")
           println("Object is " + obj)
-         
-          val fieldTpe =  if (obj == "this") getClassDef(ctx.head._2).findField(field).get.tpe else  getClassDef(obj).findField(field).get.tpe
+
+          val fieldTpe = if (obj == "this") getClassDef(ctx.head._2).findField(field).get.tpe else getClassDef(obj).findField(field).get.tpe
           println("field type: " + fieldTpe)
           val rhsTpe = typeOf(rhs, ctx)
           if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
@@ -126,7 +126,7 @@ object Type {
         case Select(obj, field) => {
           println("object is " + obj)
           val clas = typeOf(obj, ctx)
-          print(s"class name in select is $clas" )
+          print(s"class name in select is $clas")
           val fieldDef = getClassDef(clas).findField(field)
           fieldDef match {
             case Some(f) => typeOf(f, ctx)
@@ -163,7 +163,15 @@ object Type {
         }
       }
     }
-   // CT.objectClass // not a good idea... 
+    // CT.objectClass // not a good idea... 
+  }
+
+  def findVar(v: String, ctx: Context) = {
+    val c = ctx.find(_._2 == v)
+    c match {
+      case Some((str, cls)) => cls
+      case None => null
+      }
   }
 }
 
@@ -216,7 +224,7 @@ object Evaluate extends (Expr => Expr) {
     case Apply(obj, method, args) => false
   }
 
-  def isValueArg(args: List[Expr]) = if(args.isEmpty) true else args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
+  def isValueArg(args: List[Expr]) = if (args.isEmpty) true else args map (arg => isValue(arg)) reduceLeft ((arg1, arg2) => arg1 && arg2) // So much Scalness!!
 
   def applyArgs(args: List[Expr]): List[Expr] = args match {
     case x :: xs => if (!isValue(x)) apply(x) :: xs else x :: applyArgs(xs)
