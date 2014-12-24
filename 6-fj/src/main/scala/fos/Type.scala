@@ -26,7 +26,7 @@ object Type {
         println("type of constr")
         println(typeOf(ctor, ctx)) //check the constructor
         println("Done")
-        for (m <- methods) typeOf(m, (name, name) :: ctx) // check the methods
+        for (m <- methods) typeOf(m, (name, "this") :: ctx) // check the methods
         println(s"Class $name OK")
         name //everything is ok, can return the type of the class
       }
@@ -50,16 +50,14 @@ object Type {
         }
         println("Args are ok")
         println("name is " + name)
-        println("context is " + ("this", name) :: (args.map(a => (a.name, a.tpe)) ::: ctx))
-        for (a <- body) typeOf(a, ("this", name) :: (args.map(a => (a.name, a.tpe)) ::: ctx))
+        for (a <- body) typeOf(a, (name, "this" ) :: (args.map(a => (a.tpe, a.name)) ::: ctx))
         println("Body ok")
         name
       case Assign(obj, field, rhs) => {
         try {
           println("Type assign")
           println("Object is " + obj)
-
-          val fieldTpe = if (obj == "this") getClassDef(ctx.head._2).findField(field).get.tpe else getClassDef(obj).findField(field).get.tpe
+          val fieldTpe = if (obj == "this") getClassDef(findVar("this", ctx)).findField(field).get.tpe else getClassDef(obj).findField(field).get.tpe
           println("field type: " + fieldTpe)
           val rhsTpe = typeOf(rhs, ctx)
           if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
@@ -104,9 +102,9 @@ object Type {
       }
       case e: Expr => e match {
         case Var(name) => {
-          val c = ctx.find(_._1 == name)
+          val c = ctx.find(_._2 == name)
           c match {
-            case Some((str, cls)) => cls
+            case Some((cls, str)) => cls
             case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
           }
         }
@@ -169,7 +167,7 @@ object Type {
   def findVar(v: String, ctx: Context) = {
     val c = ctx.find(_._2 == v)
     c match {
-      case Some((str, cls)) => cls
+      case Some((cls, str)) => cls
       case None => null
       }
   }
