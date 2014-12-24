@@ -50,7 +50,8 @@ object Type {
         }
         println("Args are ok")
         println("name is " + name)
-        for (a <- body) typeOf(a,("this", name) :: ctx)
+        println("context is " + ("this", name) :: (args.map( a => (a.name, a.tpe)) ::: ctx))
+        for (a <- body) typeOf(a,("this", name) :: (args.map( a => (a.name, a.tpe)) ::: ctx))
         println("Body ok")
         name
       case Assign(obj, field, rhs) => {
@@ -58,7 +59,7 @@ object Type {
           println("Type assign")
           println("Object is " + obj)
          
-          val fieldTpe =  if (obj == "this") ctx.head._2 else  getClassDef(obj).findField(field).get.tpe
+          val fieldTpe =  if (obj == "this") getClassDef(ctx.head._2).findField(field).get.tpe else  getClassDef(obj).findField(field).get.tpe
           println("field type: " + fieldTpe)
           val rhsTpe = typeOf(rhs, ctx)
           if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
@@ -103,9 +104,9 @@ object Type {
       }
       case e: Expr => e match {
         case Var(name) => {
-          val c = ctx.find(_._2 == name)
+          val c = ctx.find(_._1 == name)
           c match {
-            case Some((cls, str)) => cls
+            case Some((str, cls)) => cls
             case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
           }
         }
@@ -119,10 +120,13 @@ object Type {
               throw new TypeError(s"Arguments of New declaration did not match those expected. @ ${tree.pos}")
             }
           }
-          clas.name
+          println("new class name is " + clas.name)
+          return clas.name
         }
         case Select(obj, field) => {
+          println("object is " + obj)
           val clas = typeOf(obj, ctx)
+          print(s"class name in select is $clas" )
           val fieldDef = getClassDef(clas).findField(field)
           fieldDef match {
             case Some(f) => typeOf(f, ctx)
@@ -159,7 +163,7 @@ object Type {
         }
       }
     }
-    CT.objectClass
+   // CT.objectClass // not a good idea... 
   }
 }
 
