@@ -18,49 +18,48 @@ object Type {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
         val clas = getClassDef(superclass)
+        println("class " + clas)
         val superfields = clas.fields.filter(a => ctor.supers.contains(Var(a.name)))
+        println("Super fields " + superfields)
         val newfields = fields.filterNot(a => superfields.contains(a))
+        println("New fields: " + newfields)
+        println("type of constr")
+        println(typeOf(ctor, ctx)) //check the constructor
+        println("Done")
+        for (m <- methods) typeOf(m, (name, name) :: ctx) // check the methods
+        println(s"Class $name OK")
+        name //everything is ok, can return the type of the class
+      }
+      case FieldDef(tpe, name) => tpe //ok
+      case CtrDef(name, args, supers, body) =>
+        val clas = getClassDef(name)
+        val ctorNewfields = body.map(a => a.field) //not sure if good idea, here we only keep the fields that are mentioned in the assignements
+        val supFields = clas.getFieldsSuperclass
+
+        if (!args.filterNot(a => supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields) || !supFields.map(a => a.name).equals(supers)) {
+          println("Args not OK")
+          throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
+        }
         try {
-          clas.checkTypeArguments((for (arg <- superfields) yield typeOf(arg, ctx)))
+          clas.checkTypeArguments((for (arg <- args) yield typeOf(arg, ctx)))
         } catch {
           case e: ClassConstructorArgsException => {
             println(e.msg)
             throw new TypeError(s"Constructor of class $name does not initialise super fields properly. @ ${tree.pos}")
           }
         }
-        // the check is not sufficient, what about superclass fields? 
-//        val ctorNewfields = (ctor.body).map(a => a.field)
-//        if (!newfields.map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
-        	typeOf(ctor, ctx)
-        try {
-          for (m <- methods) typeOf(m, ctx)
-        } catch {
-          case e: TypeError => {
-            println(e.msg)
-            throw new TypeError(s"Constructor of class $name does not declare its methods correctly. @ ${tree.pos}")
-          }
-        }
-        println(s"Class $name OK")
-        name
-      }
-      case FieldDef(tpe, name) => tpe
-      case CtrDef(name, args, supers, body) =>
-        val clas = getClassDef(name)
-        val ctorNewfields = body.map(a => a.field)
-        if (!args.filterNot(a=> supers.map(y => y.name).contains(a.name)).map(a => a.name).equals(ctorNewfields)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
-        val supFields = clas.getFieldsSuperclass
-        if (!supFields.map(a => a.name).equals(supers)) throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
-        try {
-          for (a <- body) typeOf(a, ctx)
-        } catch {
-          case e: TypeError =>
-            print(e.msg)
-            throw new TypeError(s"Constructor of class $name does not initialise fields properly. @ ${tree.pos}")
-        }
+        println("Args are ok")
+        println("name is " + name)
+        for (a <- body) typeOf(a,("this", name) :: ctx)
+        println("Body ok")
         name
       case Assign(obj, field, rhs) => {
         try {
-          val fieldTpe = getClassDef(obj).findField(field).get.tpe
+          println("Type assign")
+          println("Object is " + obj)
+         
+          val fieldTpe =  if (obj == "this") ctx.head._2 else  getClassDef(obj).findField(field).get.tpe
+          println("field type: " + fieldTpe)
           val rhsTpe = typeOf(rhs, ctx)
           if (fieldTpe == rhsTpe) fieldTpe else throw new TypeError(s"Type mismatch: expected $fieldTpe ; found $rhsTpe. @ ${tree.pos}")
         } catch {
@@ -107,7 +106,7 @@ object Type {
           val c = ctx.find(_._2 == name)
           c match {
             case Some((cls, str)) => cls
-            case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ?
+            case None => throw new TypeError(s"Variable $name was not defined in the scope. @ ${tree.pos}") // Can this ever happen ? Always with the actual code 
           }
         }
         case New(cls, args) => {
