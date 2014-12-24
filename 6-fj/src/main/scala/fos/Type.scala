@@ -18,7 +18,7 @@ object Type {
       case Program(cls, expr) => typeOf(expr, ctx)
       case ClassDef(name, superclass, fields, ctor, methods) => {
         println(s"Typechecking class $name")
-        if(hasInheritanceCycle(name, getClassDef(superclass))) throw new InheritanceCycleException("Cycle in inheritance definition of class " + name)
+        if (hasInheritanceCycle(name, getClassDef(superclass))) throw new InheritanceCycleException("Cycle in inheritance definition of class " + name)
         typeOf(ctor, ctx) //check the constructor
         for (m <- methods) typeOf(m, (name, "this") :: ctx) // check the methods
         println(s"Class $name OK")
@@ -133,15 +133,10 @@ object Type {
             case None => throw new TypeError(s"Method $method is undefined in class $clas. @ ${tree.pos}")
           }
         }
-        case Cast(cls, e) => {
-          val eType = getClassDef(typeOf(e, ctx))
-          if (eType.isSubClassOf(getClassDef(cls))) cls
-          // else if (eType.isSuperclassOf(Option(getClassDef(cls))) && eType.name != cls) cls  //  This is the rule as defined in the paper, but its detail seems useless in our implementation
-          else if (eType.isSuperclassOf(Option(getClassDef(cls)))) cls
-          else { //if (!eType.isSuperclassOf(Option(getClassDef(cls))) && !eType.isSubClassOf(getClassDef(cls))) {   // This is necessary if we use the paper's exact rule above
-            println(s"Warning: Stupid cast of expression $e to type $cls. @ ${tree.pos}")
-            cls
-          }
+        case c: Cast => {
+          checkStupidCast(c, ctx)
+          val eType = getClassDef(typeOf(c.e, ctx))
+          c.cls
         }
       }
     }
@@ -160,6 +155,17 @@ object Type {
     case "Object" => false
     case `head` => true
     case _ => hasInheritanceCycle(head, getClassDef(current.superclass))
+  }
+
+  def checkStupidCast(expr: Expr, ctx: Context): Class = expr match {
+    case Cast(cl, e) => {
+      val eType = getClassDef(checkStupidCast(e, ctx))
+      if (!eType.isSubClassOf(getClassDef(cl)) && !eType.isSuperclassOf(Option(getClassDef(cl)))) {
+        println(s"Warning: Stupid cast of expression $e to type $cl. @ ${expr.pos}")
+      }
+      eType.name
+    }
+    case _ => typeOf(expr, ctx)
   }
 }
 
