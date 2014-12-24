@@ -171,7 +171,7 @@ object FJ extends StandardTokenParsers {
         try {
           cls foreach (cl => typeOf(cl, Nil))
           val typeExpr = typeOf(expr, Nil)
-          println("TYPE EXPR: " + typeExpr); expr
+          println("TYPE EXPR: " + typeExpr);
           val evExpr = path(expr, Evaluate)
           print("EVALUATE TO: ")
           evExpr
@@ -186,7 +186,7 @@ object FJ extends StandardTokenParsers {
             CT.clear
             Stream.cons(expr, Stream.empty)
 
-          case e @ _ =>
+          case e: Throwable =>
             println(e)
             CT.clear
             Stream.cons(expr, Stream.empty)
@@ -209,7 +209,6 @@ object FJ extends StandardTokenParsers {
           for (t <- eval(trees, Evaluate))
             println(t)
         } catch {
-          case tperror => println(tperror.toString)
           case tperror: Throwable => println(tperror.toString)
         }
       case e =>
